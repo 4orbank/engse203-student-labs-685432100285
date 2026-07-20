@@ -1,15 +1,15 @@
 {
   "week": "week-03",
   "title": "Responsive Web UI & Form Interaction",
-  "status": "ready",
+  "status": "submitted",
   "originalRepoUrl": "https://github.com/4orbank/engse203-lab03-685432100285",
   "originalCommit": "8bda82ea9c3609443a9c8020f81ea1d8ecf71841",
-  "pullRequestUrl": "",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/3",
   "submissionTag": "lab-03-submission-v1",
   "testStatus": "pass",
   "notes": "npm check และ build ผ่าน ทดสอบ Desktop, Mobile 375px, validation, live preview, submit interaction และ Console แล้ว",
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-03/",
   "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-03/labs/week-03/source",
   "hasPublish": true,
-  "sourceEntries": 7
+  "sourceEntries": 8
 }
