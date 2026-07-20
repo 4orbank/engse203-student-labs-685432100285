@@ -3,10 +3,9 @@
 | รายการ | ข้อมูล |
 |---|---|
 | รายวิชา | ENGSE203 การเขียนโปรแกรมสำหรับวิศวกรซอฟต์แวร์ |
-| รหัสนักศึกษา | STUDENT-ID |
-| ชื่อ-นามสกุล | ชื่อ-นามสกุล |
-| Section | SEC-X |
-| GitHub Username | GITHUB-USERNAME |
-| Repository | `engse203-student-labs-STUDENT-ID` |
-
-> ไฟล์นี้จะถูกปรับข้อมูลเมื่อรัน `npm run setup`
+| รหัสนักศึกษา | 685432100285 |
+| ชื่อ-นามสกุล | ธนาคาร ลือนาม |
+| Section | SEC1 |
+| GitHub Username | 4orbank |
+| Repository | `engse203-student-labs-685432100285` |
+| Pages Hub | https://4orbank.github.io/engse203-student-labs-685432100285/ |
