@@ -1,11 +1,11 @@
 {
   "week": "week-01",
   "title": "Developer Environment & GitHub Repository Setup",
-  "status": "draft",
-  "originalRepoUrl": "",
-  "originalCommit": "",
+  "status": "ready",
+  "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs--68543210028_5-",
+  "originalCommit": "012640365d9deb7e96fea4871cb8fb93d963215b",
   "pullRequestUrl": "",
-  "submissionTag": "",
-  "testStatus": "not-tested",
-  "notes": "LAB 1 ใช้ evidence report ได้โดยไม่ต้องมี web application"
+  "submissionTag": "lab-01-submission-v1",
+  "testStatus": "pass",
+  "notes": "LAB 01 ไม่มี repository เดิมแยกต่างหาก จึงใช้อ้างอิง baseline จาก repository รวม ทดสอบ hello.js และตรวจ Node.js, npm และ Git แล้ว"
 }
