@@ -366,15 +366,15 @@ git status
 
 Definition of Done:
 
-- [ ] `student-config.json` ไม่มี placeholder
-- [ ] Branch `lab/week-01`–`lab/week-03` มีบน GitHub
-- [ ] Source LAB ทั้งสามอยู่ถูกโฟลเดอร์
-- [ ] ไม่มี `.git`, `node_modules`, `.env` หรือ secret ใน LAB folders
-- [ ] metadata มี original repository/commit, PR, tag และ test status
-- [ ] PR ทั้งสาม merge แล้ว
-- [ ] Tag `lab-01-submission-v1`–`lab-03-submission-v1` มีจริง
-- [ ] Pages Hub และ LAB URLs เปิดได้
-- [ ] LAB 2/3 interaction และ asset paths ทำงาน
+- [x] `student-config.json` ไม่มี placeholder
+- [x] Branch `lab/week-01`–`lab/week-03` มีบน GitHub
+- [x] Source LAB ทั้งสามอยู่ถูกโฟลเดอร์
+- [x] ไม่มี `.git`, `node_modules`, `.env` หรือ secret ใน LAB folders
+- [x] metadata มี original repository/commit, PR, tag และ test status
+- [x] PR ทั้งสาม merge แล้ว
+- [x] Tag `lab-01-submission-v1`–`lab-03-submission-v1` มีจริง
+- [x] Pages Hub และ LAB URLs เปิดได้
+- [x] LAB 2/3 interaction และ asset paths ทำงาน
 
 ---
 
