@@ -1,11 +1,11 @@
 {
   "week": "week-03",
   "title": "Responsive Web UI & Form Interaction",
-  "status": "draft",
-  "originalRepoUrl": "",
-  "originalCommit": "",
-  "pullRequestUrl": "",
-  "submissionTag": "",
-  "testStatus": "not-tested",
-  "notes": "Static site ต้องมี index.html ที่ publish root"
+  "status": "submitted",
+  "originalRepoUrl": "https://github.com/4orbank/engse203-lab03-685432100285",
+  "originalCommit": "8bda82ea9c3609443a9c8020f81ea1d8ecf71841",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/3",
+  "submissionTag": "lab-03-submission-v1",
+  "testStatus": "pass",
+  "notes": "npm check และ build ผ่าน ทดสอบ Desktop, Mobile 375px, validation, live preview, submit interaction และ Console แล้ว"
 }
