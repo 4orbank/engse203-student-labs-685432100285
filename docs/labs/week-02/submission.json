@@ -1,15 +1,15 @@
 {
   "week": "week-02",
   "title": "Modern JavaScript Learning Dashboard",
-  "status": "ready",
+  "status": "submitted",
   "originalRepoUrl": "https://github.com/4orbank/engse203-lab02--68543210028-5-",
   "originalCommit": "54adad98ca4193ff4cc5ae5a78e18079a03292ce",
-  "pullRequestUrl": "",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/2",
   "submissionTag": "lab-02-submission-v1",
   "testStatus": "pass",
   "notes": "ติดตั้ง dependencies และ Vite build ผ่านแล้ว นำ build output ที่มี index.html เข้า publish/",
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-02/",
   "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-02/labs/week-02/source",
   "hasPublish": true,
-  "sourceEntries": 10
+  "sourceEntries": 8
 }
