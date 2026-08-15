@@ -1,11 +1,11 @@
 {
   "week": "week-04",
   "title": "React Campus Service Request",
-  "status": "ready",
+  "status": "submitted",
   "originalRepoUrl": "",
   "originalCommit": "",
-  "pullRequestUrl": "",
-  "submissionTag": "",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/4",
+  "submissionTag": "lab-04-submission-v1",
   "testStatus": "pass",
   "notes": ""
 }
