@@ -49,18 +49,18 @@ function DashboardPage() {
     completed: requests.filter((request) => request.status === 'completed').length,
   }), [requests]);
 
-const filteredRequests = requests.filter((request) => {
-  const matchesStatus =
-    statusFilter === 'all' || request.status === statusFilter;
+  const filteredRequests = requests.filter((request) => {
+    const matchesStatus =
+      statusFilter === 'all' || request.status === statusFilter;
 
-  const keyword = searchText.toLowerCase();
+    const keyword = searchText.toLowerCase();
 
-  const matchesSearch =
-    request.requesterName.toLowerCase().includes(keyword) ||
-    request.details.toLowerCase().includes(keyword);
+    const matchesSearch =
+      request.requesterName.toLowerCase().includes(keyword) ||
+      request.details.toLowerCase().includes(keyword);
 
-  return matchesStatus && matchesSearch;
-});
+    return matchesStatus && matchesSearch;
+  });
 
   function handleRetry() {
     if (scenario) setSearchParams({});
@@ -117,8 +117,16 @@ const filteredRequests = requests.filter((request) => {
               onChange={(event) => setSearchText(event.target.value)}
             />
 
-            {/* TODO B3: เพิ่ม onMarkDone={handleMarkDone} และเขียน handleMarkDone ให้เรียก updateRequestStatus แล้ว setRequests เพื่อให้ summary อัปเดต + รอด refresh */}
-            <RequestList requests={filteredRequests} onDeleteRequest={handleDelete} />
+            {filteredRequests.length === 0 && (
+              <p className="subtle-empty">
+                ไม่พบคำร้องที่ตรงกับการค้นหา
+              </p>
+            )}
+
+            <RequestList
+              requests={filteredRequests}
+              onDeleteRequest={handleDelete}
+            />
           </section>
         </>
       )}
