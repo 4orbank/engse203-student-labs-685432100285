@@ -5,8 +5,11 @@ function RequestList({ requests, onDeleteRequest }) {
   return (
     <div className="request-list" data-testid="request-list">
       {requests.map((request) => (
-
-        <RequestCard request={request} onDeleteRequest={onDeleteRequest} />
+        <RequestCard
+          key={request.id}
+          request={request}
+          onDeleteRequest={onDeleteRequest}
+        />
       ))}
     </div>
   );
