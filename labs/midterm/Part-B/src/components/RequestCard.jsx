@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import PriorityBadge from './PriorityBadge.jsx';
 
 function RequestCard({ request, onDeleteRequest, onMarkDone }) {
   return (
@@ -9,28 +10,31 @@ function RequestCard({ request, onDeleteRequest, onMarkDone }) {
         <p>{request.location}</p>
         <p>{request.details}</p>
         {/* TODO B4: แทน {request.priority} ด้านล่างด้วย <PriorityBadge priority={request.priority} /> ที่คุณสร้าง */}
-        <p><span className={`badge ${request.status}`}>{request.status}</span> · {request.priority}</p>
-      </div>
-<div className="request-actions">
-  {request.status !== 'completed' && (
-    <button
-      className="button primary"
-      type="button"
-      onClick={() => onMarkDone(request.id)}
-    >
-      ทำเสร็จ
-    </button>
-  )}
+<p>
+  <span className={`badge ${request.status}`}>{request.status}</span> · <PriorityBadge priority={request.priority} />
+</p>
 
-  <button
-    className="button danger"
-    type="button"
-    onClick={() => onDeleteRequest(request.id)}
-    aria-label={`ลบคำร้อง ${request.id}`}
-  >
-    ลบ
-  </button>
-</div>
+      </div>
+      <div className="request-actions">
+        {request.status !== 'completed' && (
+          <button
+            className="button primary"
+            type="button"
+            onClick={() => onMarkDone(request.id)}
+          >
+            ทำเสร็จ
+          </button>
+        )}
+
+        <button
+          className="button danger"
+          type="button"
+          onClick={() => onDeleteRequest(request.id)}
+          aria-label={`ลบคำร้อง ${request.id}`}
+        >
+          ลบ
+        </button>
+      </div>
     </article>
   );
 }
