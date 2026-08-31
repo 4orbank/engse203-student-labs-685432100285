@@ -24,9 +24,9 @@
 - แก้อย่างไร: เพิ่ม requestId เข้าไปใน dependency ของ useEffect เป็น [requestId, reloadKey] เพื่อให้โหลดข้อมูลใหม่เมื่อ URL เปลี่ยน
 
 ## บั๊กที่ 5 — อาการ: กด "ลบ" แล้วรายการยังอยู่ ต้องรีเฟรชถึงหาย
-- ไฟล์/บรรทัด:
-- สาเหตุ:
-- แก้อย่างไร:
+- ไฟล์/บรรทัด: src/pages/DashboardPage.jsx ส่วน handleDelete
+- สาเหตุ: src/pages/DashboardPage.jsx ส่วน handleDelete
+- แก้อย่างไร: deleteRequest() ลบข้อมูลแล้ว ระบบได้รายการใหม่มาใน nextRequests แต่กลับใช้ requests ตัวเดิมในการอัปเดต state
 
 ## บั๊กที่ 6 — อาการ: กด "Reset Demo Data" แล้วหน้าพัง/ว่างเปล่า
 - ไฟล์/บรรทัด:
