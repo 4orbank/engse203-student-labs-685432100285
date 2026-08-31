@@ -6,8 +6,7 @@ import LoadingState from '../components/LoadingState.jsx';
 import RequestList from '../components/RequestList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
 import useManualReload from '../hooks/useManualReload.js';
-import { deleteRequest, getRequests, resetRequests } from '../services/requestService.js';
-
+import { deleteRequest, getRequests, resetRequests, updateRequestStatus, } from '../services/requestService.js';
 function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const scenario = searchParams.get('scenario') ?? '';
@@ -76,7 +75,17 @@ function DashboardPage() {
       setNotice(error instanceof Error ? error.message : 'ลบคำร้องไม่สำเร็จ');
     }
   }
-
+  async function handleMarkDone(requestId) {
+    try {
+      const nextRequests = await updateRequestStatus(requestId, 'completed');
+      setRequests(nextRequests);
+      setNotice(`อัปเดตคำร้อง ${requestId} เป็นเสร็จสิ้นแล้ว`);
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : 'อัปเดตสถานะไม่สำเร็จ',
+      );
+    }
+  }
   async function handleReset() {
     if (!window.confirm('ต้องการคืนข้อมูลตัวอย่างเริ่มต้นหรือไม่?')) return;
     try {
@@ -126,6 +135,7 @@ function DashboardPage() {
             <RequestList
               requests={filteredRequests}
               onDeleteRequest={handleDelete}
+              onMarkDone={handleMarkDone}
             />
           </section>
         </>
