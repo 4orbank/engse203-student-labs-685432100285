@@ -29,6 +29,6 @@
 - แก้อย่างไร: deleteRequest() ลบข้อมูลแล้ว ระบบได้รายการใหม่มาใน nextRequests แต่กลับใช้ requests ตัวเดิมในการอัปเดต state
 
 ## บั๊กที่ 6 — อาการ: กด "Reset Demo Data" แล้วหน้าพัง/ว่างเปล่า
-- ไฟล์/บรรทัด:
-- สาเหตุ:
-- แก้อย่างไร:
+- ไฟล์/บรรทัด: src/pages/DashboardPage.jsx ส่วน handleReset
+- สาเหตุ: src/pages/DashboardPage.jsx ส่วน handleReset
+- แก้อย่างไร: resetRequests() เป็น async function จึงคืนค่าเป็น Promise แต่โค้ดเอา Promise ไปใส่ใน requests โดยตรง ทำให้ requests ไม่ได้เป็น array ของรายการ
