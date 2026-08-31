@@ -51,8 +51,7 @@ function DashboardPage() {
 
   const filteredRequests = statusFilter === 'all'
     ? requests
-
-    : requests.filter((request) => request.status !== statusFilter);
+    : requests.filter((request) => request.status === statusFilter);
 
   function handleRetry() {
     if (scenario) setSearchParams({});
