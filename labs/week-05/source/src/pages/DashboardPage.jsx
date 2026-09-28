@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import FilterBar from '../components/FilterBar.jsx';
 import RequestList from '../components/RequestList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
@@ -14,16 +15,15 @@ function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [notice, setNotice] = useState('');
   const [reloadKey, reload] = useManualReload();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scenario = searchParams.get('scenario') ?? undefined;
 
   useEffect(() => {
     let active = true;
     setStatus('loading');
     setErrorMessage('');
 
-    const params = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-    const scenario = params.get('scenario') ?? undefined;
-
-    getRequests({ scenario })
+    getRequests({ scenario, onRecovery: setNotice })
       .then((data) => {
         if (!active) return;
         setRequests(data);
@@ -38,7 +38,7 @@ function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [scenario, reloadKey]);
 
   const summary = useMemo(() => ({
     total: requests.length,
@@ -86,7 +86,16 @@ function DashboardPage() {
       {notice && <p className="notice" role="status">{notice}</p>}
 
       {status === 'loading' && <LoadingState />}
-      {status === 'error' && <ErrorState message={errorMessage} onRetry={reload} />}
+      {status === 'error' && <ErrorState
+        message={errorMessage}
+        onRetry={() => {
+          if (scenario) {
+            setSearchParams({});
+          } else {
+            reload();
+          }
+        }}
+      />}
       {status === 'success' && requests.length === 0 && (
         <section className="state-card" data-testid="empty-state">
           <h2>ยังไม่มีคำร้อง</h2>
