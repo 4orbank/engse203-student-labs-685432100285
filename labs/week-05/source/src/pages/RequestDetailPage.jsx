@@ -1,57 +1,48 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-
 import LoadingState from '../components/LoadingState.jsx';
 import { getRequestById } from '../services/requestService.js';
 
 function RequestDetailPage() {
   const { requestId } = useParams();
   const [request, setRequest] = useState(null);
-  const [loadState, setLoadState] = useState('loading');
+  const [status, setStatus] = useState('loading');
 
   useEffect(() => {
-    let ignore = false;
+    let active = true;
+    setStatus('loading');
 
-    async function loadRequest() {
-      setLoadState('loading');
-
-      const data = await getRequestById(requestId);
-
-      if (!ignore) {
-        setRequest(data);
-        setLoadState('success');
-      }
-    }
-
-    loadRequest();
+    getRequestById(requestId)
+      .then((result) => {
+        if (!active) return;
+        setRequest(result);
+        setStatus(result ? 'success' : 'not-found');
+      })
+      .catch(() => {
+        if (active) setStatus('error');
+      });
 
     return () => {
-      ignore = true;
+      active = false;
     };
   }, [requestId]);
 
-  if (loadState === 'loading') {
+  if (status === 'loading') return <LoadingState />;
+  if (status === 'not-found') {
     return (
-      <section data-testid="page-request-detail">
-        <LoadingState message="กำลังโหลดรายละเอียดคำร้อง…" />
+      <section className="state-card" data-testid="request-detail-not-found">
+        <h1>ไม่พบคำร้อง</h1>
+        <p>ไม่พบคำร้องรหัส {requestId}</p>
+        <Link className="button primary inline" to="/">กลับ Dashboard</Link>
       </section>
     );
   }
-
-  if (!request) {
+  if (status === 'error') {
     return (
-      <section data-testid="page-request-detail">
-        <div className="page-heading">
-          <div>
-            <p className="eyebrow dark">REQUEST NOT FOUND</p>
-            <h1>ไม่พบคำร้อง</h1>
-            <p>ไม่พบคำร้องรหัส {requestId}</p>
-          </div>
-        </div>
-
-        <Link className="button secondary" to="/">
-          กลับหน้ารายการคำร้อง
-        </Link>
+      <section className="state-card error-state" role="alert">
+        <h1>โหลดรายละเอียดไม่สำเร็จ</h1>
+        <p>ไม่สามารถโหลดข้อมูลคำร้องได้</p>
+        <Link className="button primary inline" to="/">กลับ Dashboard</Link>
       </section>
     );
   }
@@ -61,23 +52,18 @@ function RequestDetailPage() {
       <div className="page-heading">
         <div>
           <p className="eyebrow dark">REQUEST DETAIL</p>
-          <h1>{request.id}</h1>
-          <p>รายละเอียดคำร้อง</p>
+          <h1>{request.requestType}</h1>
+          <p>{request.id}</p>
         </div>
       </div>
-
-      <div className="panel">
-        <h2>{request.title}</h2>
-        <p><strong>ผู้ยื่นคำร้อง:</strong> {request.requesterName}</p>
-        <p><strong>ประเภท:</strong> {request.category}</p>
+      <article className="panel prose">
+        <p><strong>ผู้แจ้ง:</strong> {request.requesterName}</p>
+        <p><strong>สถานที่:</strong> {request.location}</p>
         <p><strong>รายละเอียด:</strong> {request.details}</p>
         <p><strong>ความเร่งด่วน:</strong> {request.priority}</p>
         <p><strong>สถานะ:</strong> {request.status}</p>
-      </div>
-
-      <Link className="button secondary" to="/">
-        กลับหน้ารายการคำร้อง
-      </Link>
+        <Link className="button inline" to="/">กลับ Dashboard</Link>
+      </article>
     </section>
   );
 }

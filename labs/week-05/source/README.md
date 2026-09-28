@@ -1,48 +1,72 @@
-# ENGSE203 LAB05 Starter — Campus Service Request
+# Week 05 — React Routing Data Fetching Mini App
 
-Starter นี้เปิดได้และรักษาพฤติกรรมแกนของ Week04 แบบ in-memory แต่ตั้งใจยังไม่ผ่าน LAB05 ทุกข้อ ให้ทำตาม CP00–CP06 และรัน checker หลังแต่ละช่วง
+## ภาพรวม
 
-## Run
+Campus Service Request ถูกแยกเป็นหลายหน้าและใช้ React Router จัดการ URL โดยใช้ HashRouter เพื่อให้ทำงานบน GitHub Pages ได้
 
-```bash
-npm ci
-npm run dev
-npm run check
-npm run build
-npm run preview
+## Component Flow
+
+```text
+HashRouter
+└── App
+    └── AppLayout
+        ├── AppHeader
+        └── Outlet
+            ├── DashboardPage
+            │   ├── SummaryPanel
+            │   ├── FilterBar
+            │   └── RequestList
+            ├── NewRequestPage
+            │   └── RequestForm
+            ├── RequestDetailPage
+            ├── AboutPage
+            └── NotFoundPage
 ```
 
-## Starting state
+## Data Flow
 
-- `HashRouter` และ dependency เตรียมไว้เป็น infrastructure
-- Dashboard ยัง render โดยตรงและยังไม่ใช้ route matrix
-- add/filter/delete ยังทำงานใน memory; refresh แล้วข้อมูลใหม่หาย
-- Page/Service/Storage filenames และ validator scaffold เตรียมไว้
-- deterministic `error`/`empty` scenario helper เตรียมไว้
-- `npm run check` ต้องรายงาน `[TODO]` จนกว่าจะทำ CP ครบ
-
-## Target architecture
-
-```mermaid
-flowchart TD
-  URL[Hash URL] --> Routes[App Routes]
-  Routes --> Page[Page Component]
-  Page --> UI[Shared Components]
-  Page --> Service[requestService]
-  Service --> Seed[Seed JSON]
-  Service --> Storage[requestStorage]
+```text
+DashboardPage
+    ↓ useEffect
+requestService
+    ├── requestStorage
+    │   └── localStorage
+    └── initialRequests.json
 ```
 
-- `App.jsx` กำหนด route matrix
-- `pages/` เป็นเจ้าของ route-specific state และ lifecycle
-- `components/` รับข้อมูลและ handler ผ่าน props
-- `requestService.js` เป็น data-access boundary ของ UI
-- `requestStorage.js` เป็นไฟล์เดียวที่ใช้ `localStorage`
+การอ่านข้อมูลและการเขียนข้อมูลอยู่ใน Service/Storage Layer ไม่ให้ component เรียก `fetch()` หรือ `localStorage` โดยตรง
 
-## TODO boundary
+## Routing
 
-นักศึกษาประกอบ Routes/Navigation, Effect lifecycle, Service calls, persistence functions, dynamic detail และ regression checks เอง ส่วน schema validator, visual components, scenario delay และ checker infrastructure มีให้เป็น scaffold
+- `#/` → Dashboard
+- `#/requests/new` → New Request
+- `#/requests/:requestId` → Request Detail
+- `#/about` → About
+- เส้นทางอื่น → Not Found
 
-## Privacy
+## เหตุผลการออกแบบ
 
-ใช้ข้อมูลสาธิตเท่านั้น ห้ามบันทึก token, password, secret หรือข้อมูลส่วนบุคคลจริงใน `localStorage` หรือหลักฐานภาพ
+ใช้ `AppLayout` เป็น layout กลางเพื่อให้ header และโครงหน้าไม่ต้องเขียนซ้ำทุกหน้า และใช้ `Outlet` เป็นตำแหน่งสำหรับหน้า child route
+
+ใช้ Service Layer แยกจาก UI เพื่อให้ component รับผิดชอบการแสดงผล ส่วนการโหลด เพิ่ม ลบ reset และ persistence อยู่ใน service
+
+ข้อมูลใน localStorage ใช้ envelope ที่มี `schemaVersion`, `updatedAt` และ `requests` เพื่อให้ตรวจรูปแบบข้อมูลก่อนนำมาใช้ได้ และถ้าข้อมูลเสียหายจะโหลด seed กลับมาแทน
+
+## useEffect Dependency Array
+
+Dashboard ใช้ dependency array `[scenario, reloadKey]` เพราะข้อมูลต้องโหลดใหม่เมื่อ scenario ใน URL เปลี่ยน หรือเมื่อผู้ใช้กด retry ผ่าน `reloadKey`
+
+Request Detail ใช้ `[requestId]` เพราะรายละเอียดต้องโหลดใหม่เมื่อ ID ใน URL เปลี่ยน
+
+ทั้งสอง Effect มี cleanup guard เพื่อไม่ให้ผลลัพธ์จากการโหลดข้อมูลที่ไม่เกี่ยวข้องแล้วมา update state หลัง component ถูกถอดออก
+
+## Week 05 Features
+
+- React Router + HashRouter
+- Dashboard / New Request / Request Detail / About / Not Found
+- Loading / Success / Empty / Error / Retry
+- Service Layer สำหรับ data fetching
+- localStorage persistence
+- schema validation และ recovery
+- Add / Delete / Reset
+- Responsive layout และ keyboard navigation

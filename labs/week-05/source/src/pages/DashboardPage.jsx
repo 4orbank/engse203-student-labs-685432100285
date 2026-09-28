@@ -1,63 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import FilterBar from '../components/FilterBar.jsx';
-import LoadingState from '../components/LoadingState.jsx';
-import ErrorState from '../components/ErrorState.jsx';
-import RequestForm from '../components/RequestForm.jsx';
 import RequestList from '../components/RequestList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
+import LoadingState from '../components/LoadingState.jsx';
+import ErrorState from '../components/ErrorState.jsx';
+import { deleteRequest, getRequests, resetRequests } from '../services/requestService.js';
 import useManualReload from '../hooks/useManualReload.js';
-import { getRequests } from '../services/requestService.js';
 
 function DashboardPage() {
   const [requests, setRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [notice, setNotice] = useState('');
-  const [loadState, setLoadState] = useState('idle');
+  const [status, setStatus] = useState('loading');
   const [errorMessage, setErrorMessage] = useState('');
-const [reloadKey, reload] = useManualReload();
-const [searchParams, setSearchParams] = useSearchParams();
-const scenario = searchParams.get('scenario') ?? '';
+  const [notice, setNotice] = useState('');
+  const [reloadKey, reload] = useManualReload();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scenario = searchParams.get('scenario') ?? undefined;
 
-useEffect(() => {
-  let ignore = false;
-
-  async function loadRequests() {
-    setLoadState('loading');
+  useEffect(() => {
+    let active = true;
+    setStatus('loading');
     setErrorMessage('');
 
-    try {
-      const data = await getRequests({ scenario });
-
-      if (!ignore) {
+    getRequests({ scenario, onRecovery: setNotice })
+      .then((data) => {
+        if (!active) return;
         setRequests(data);
-        setLoadState('success');
-      }
-    } catch (loadError) {
-      if (!ignore) {
-        setErrorMessage(loadError.message);
-        setLoadState('error');
-      }
-    }
-  }
+        setStatus('success');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setErrorMessage(error instanceof Error ? error.message : 'โหลดข้อมูลไม่สำเร็จ');
+        setStatus('error');
+      });
 
-  loadRequests();
+    return () => {
+      active = false;
+    };
+  }, [scenario, reloadKey]);
 
-  return () => {
-    ignore = true;
-  };
-}, [scenario, reloadKey]);
-
-function handleRetry() {
-  if (scenario === 'error') {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('scenario');
-    setSearchParams(nextParams);
-    return;
-  }
-
-  reload();
-}
   const summary = useMemo(() => ({
     total: requests.length,
     pending: requests.filter((request) => request.status === 'pending').length,
@@ -69,83 +51,71 @@ function handleRetry() {
     ? requests
     : requests.filter((request) => request.status === statusFilter);
 
-if (loadState === 'loading') {    return (
-      <section data-testid="page-dashboard">
-        <LoadingState />
-      </section>
-    );
+  async function handleDelete(requestId) {
+    try {
+      const next = await deleteRequest(requestId);
+      setRequests(next);
+      setNotice('ลบคำร้อง ' + requestId + ' แล้ว');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'ลบคำร้องไม่สำเร็จ');
+    }
   }
 
-if (loadState === 'error') {
-  return (
-    <section data-testid="page-dashboard">
-<ErrorState
-  message={errorMessage}
-  onRetry={handleRetry}
-/>
-    </section>
-  );
-}
-
-if (loadState === 'success' && requests.length === 0) {
-    return (
-      <section data-testid="page-dashboard">
-        <div className="page-heading">
-          <div>
-            <p className="eyebrow dark">CP03 · EMPTY STATE</p>
-            <h1>Campus Service Request</h1>
-            <p>ไม่พบรายการคำร้อง</p>
-          </div>
-        </div>
-
-        <div
-          className="state-card"
-          data-testid="empty-state"
-          role="status"
-        >
-          <h2>ยังไม่มีรายการคำร้อง</h2>
-          <p>ตอนนี้ยังไม่มีข้อมูลคำร้องให้แสดง</p>
-        </div>
-      </section>
-    );
+  async function handleReset() {
+    try {
+      const next = await resetRequests();
+      setRequests(next);
+      setStatusFilter('all');
+      setNotice('คืนค่าข้อมูลตัวอย่างแล้ว');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'คืนค่าข้อมูลไม่สำเร็จ');
+    }
   }
 
   return (
     <section data-testid="page-dashboard">
       <div className="page-heading">
         <div>
-          <p className="eyebrow dark">CP03 · SERVICE + EFFECT</p>
-          <h1>Campus Service Request</h1>
-          <p>รายการคำร้องที่โหลดผ่าน Service Layer</p>
+          <p className="eyebrow dark">CAMPUS SERVICE REQUEST</p>
+          <h1>Dashboard</h1>
+          <p>จัดการคำร้องและติดตามสถานะการดำเนินงาน</p>
         </div>
+        <button className="button" type="button" data-testid="reset-button" onClick={handleReset}>Reset Demo Data</button>
       </div>
 
       {notice && <p className="notice" role="status">{notice}</p>}
 
-      <SummaryPanel summary={summary} />
-
-      <div className="workspace-grid">
-        <section className="panel form-panel">
-          <RequestForm
-            onAddRequest={() => {}}
-          />
+      {status === 'loading' && <LoadingState />}
+      {status === 'error' && <ErrorState
+        message={errorMessage}
+        onRetry={() => {
+          if (scenario) {
+            setSearchParams({});
+          } else {
+            reload();
+          }
+        }}
+      />}
+      {status === 'success' && requests.length === 0 && (
+        <section className="state-card" data-testid="empty-state">
+          <h2>ยังไม่มีคำร้อง</h2>
+          <p>ไม่มีข้อมูลคำร้องให้แสดงในขณะนี้</p>
         </section>
-
-        <section className="panel" aria-labelledby="request-list-title">
-          <div className="section-heading">
-            <h2 id="request-list-title">รายการคำร้อง</h2>
-            <FilterBar
-              value={statusFilter}
-              onFilterChange={setStatusFilter}
-            />
+      )}
+      {status === 'success' && requests.length > 0 && (
+        <>
+          <SummaryPanel summary={summary} />
+          <div className="workspace-grid">
+            <section className="panel" aria-labelledby="request-list-title">
+              <div className="section-heading">
+                <h2 id="request-list-title">รายการคำร้อง</h2>
+                <FilterBar value={statusFilter} onFilterChange={setStatusFilter} />
+              </div>
+              <RequestList requests={filteredRequests} onDeleteRequest={handleDelete} />
+            </section>
           </div>
-
-          <RequestList
-            requests={filteredRequests}
-            onDeleteRequest={() => {}}
-          />
-        </section>
-      </div>
+        </>
+      )}
     </section>
   );
 }
