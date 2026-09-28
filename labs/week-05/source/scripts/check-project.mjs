@@ -1,1 +1,549 @@
-{"content":"/**\n * ENGSE203 LAB05 — Public Project Checker\n *\n * v2.0.0 — รองรับการสอนแบบ 2 คาบ (5A / 5B)\n *\n * การใช้งาน\n *   npm run check                    ตรวจทั้งหมด (ใช้ตอนส่งงาน)\n *   npm run check -- --session=1     ตรวจเฉพาะงานของคาบ 5A\n *   npm run check -- --session=2     ตรวจทั้งหมด (เหมือนไม่ใส่ flag)\n *\n * checker นี้ตรวจ 3 ระดับ\n *   1. STATIC   — ไฟล์, dependency, โครงสร้างและ contract ที่อ่านได้จาก source\n *   2. TODO     — ไม่มี TODO ที่ยังไม่ได้ทำหลงเหลือในไฟล์ที่ควรเสร็จแล้ว\n *   3. RUNTIME  — เรียก Service/Storage จริงพร้อม localStorage และ fetch จำลอง\n *\n * checker ตรวจ contract เท่านั้น ไม่ได้บอกวิธีทำ และไม่แทน TC-L5-01–24\n * ที่ต้องทดสอบด้วยตนเองใน browser\n */\n\nimport { readFile, readdir } from 'node:fs/promises';\nimport path from 'node:path';\nimport process from 'node:process';\nimport { pathToFileURL } from 'node:url';\n\nconst root = process.cwd();\n\n/* ------------------------------------------------------------------ */\n/* Session flag                                                        */\n/* ------------------------------------------------------------------ */\n\nconst sessionArgument = process.argv.find((argument) => argument.startsWith('--session='));\nconst session = sessionArgument ? Number(sessionArgument.slice('--session='.length)) : 0;\n\nif (![0, 1, 2].includes(session)) {\n  console.error('ค่า --session ต้องเป็น 1 หรือ 2 เท่านั้น (ไม่ใส่ = ตรวจทั้งหมด)');\n  process.exit(2);\n}\n\n/** true เมื่อ checker ต้องตรวจงานของคาบ 5B ด้วย */\nconst includeSessionB = session !== 1;\n\nconst sessionLabel = session === 1 ? 'คาบ 5A (Read Path)'\n  : session === 2 ? 'คาบ 5B (Write Path) + ทั้งหมด'\n    : 'ทั้งหมด';\n\n/* ------------------------------------------------------------------ */\n/* Check registry                                                      */\n/* ------------------------------------------------------------------ */\n\nconst checks = [];\n\n/**\n * บันทึกผลการตรวจหนึ่งรายการ\n * @param {boolean} ok       ผ่านหรือไม่\n * @param {string}  id       requirement id เช่น 'R02'\n * @param {string}  message  ข้อความที่ผู้เรียนเห็น\n * @param {1|2}     phase    1 = ตรวจตั้งแต่คาบ 5A · 2 = ตรวจเมื่อถึงคาบ 5B\n */\nfunction record(ok, id, message, phase = 1) {\n  if (phase === 2 && !includeSessionB) {\n    checks.push({ skipped: true, id, message });\n    return;\n  }\n  checks.push({ ok: Boolean(ok), id, message });\n}\n\n/** ข้ามการตรวจของคาบ 5B โดยไม่ต้องคำนวณเงื่อนไข */\nfunction skipInSessionA(phase) {\n  return phase === 2 && !includeSessionB;\n}\n\n/* ------------------------------------------------------------------ */\n/* Source helpers                                                      */\n/* ------------------------------------------------------------------ */\n\nasync function text(file) {\n  return readFile(path.join(root, file), 'utf8');\n}\n\nasync function exists(file) {\n  try {\n    await readFile(path.join(root, file));\n    return true;\n  } catch {\n    return false;\n  }\n}\n\n/**\n * ลบคอมเมนต์ออกจาก source ก่อนตรวจด้วย regex\n *\n * เหตุผล: คำสำคัญอย่าง Outlet, useParams, useNavigate และ response.ok\n * ปรากฏอยู่ในคอมเมนต์ TODO ของ starter ถ้าไม่ลบก่อน checker จะรายงานว่า\n * ผ่านทั้งที่ยังไม่มีโค้ดจริง\n *\n * ครอบคลุมทั้ง block comment (รวมคอมเมนต์ในรูปแบบที่ใช้ใน JSX) และ line\n * comment โดยไม่ตัด // ที่อยู่หลังเครื่องหมาย : เพื่อไม่ให้ URL ใน string เสียหาย\n */\nfunction stripComments(source) {\n  return source\n    .replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ')\n    .replace(/(^|[^:])\\/\\/[^\\n]*/g, '$1 ');\n}\n\n/** อ่านไฟล์แล้วลบคอมเมนต์ให้เลย — ใช้กับการตรวจ regex ทุกจุด */\nasync function code(file) {\n  return stripComments(await text(file));\n}\n\nasync function walk(directory) {\n  const entries = await readdir(path.join(root, directory), { withFileTypes: true });\n  const files = [];\n  for (const entry of entries) {\n    const relative = path.join(directory, entry.name);\n    if (entry.isDirectory()) files.push(...await walk(relative));\n    else if (/\\.(js|jsx)$/.test(entry.name)) files.push(relative);\n  }\n  return files;\n}\n\n/* ------------------------------------------------------------------ */\n/* 1. Required files                                                   */\n/* ------------------------------------------------------------------ */\n\nconst requiredFiles = [\n  'public/data/initialRequests.json', 'src/main.jsx', 'src/App.jsx', 'src/styles.css',\n  'src/pages/AppLayout.jsx', 'src/pages/DashboardPage.jsx', 'src/pages/NewRequestPage.jsx',\n  'src/pages/RequestDetailPage.jsx', 'src/pages/AboutPage.jsx', 'src/pages/NotFoundPage.jsx',\n  'src/services/requestService.js', 'src/services/requestStorage.js',\n  'src/components/LoadingState.jsx', 'src/components/ErrorState.jsx',\n  'src/components/RequestForm.jsx', 'src/components/RequestList.jsx',\n  'vite.config.js', 'package.json', 'package-lock.json', 'README.md',\n];\n\nfor (const file of requiredFiles) {\n  record(await exists(file), 'FILES', file);\n}\n\n/* ------------------------------------------------------------------ */\n/* 2. Dependency และ build contract                                    */\n/* ------------------------------------------------------------------ */\n\nconst packageJson = JSON.parse(await text('package.json'));\nrecord(packageJson.dependencies?.['react-router-dom'] === '7.18.2', 'DEPS', 'react-router-dom ต้องเป็น 7.18.2');\nrecord(packageJson.engines?.node === '>=22.12.0', 'DEPS', 'Node.js engine >=22.12.0');\nrecord(packageJson.scripts?.check === 'node scripts/check-project.mjs', 'SCRIPTS', 'npm run check');\n\nconst viteConfig = await code('vite.config.js');\nrecord(/base\\s*:\\s*['\"]\\.\\/['\"]/.test(viteConfig), 'BUILD', \"Vite base: './'\");\n\n/* ------------------------------------------------------------------ */\n/* 3. Router contract — ตรวจจาก \"โค้ดจริง\" ไม่ใช่คอมเมนต์            */\n/* ------------------------------------------------------------------ */\n\nconst mainCode = await code('src/main.jsx');\nrecord(/<\\s*HashRouter[\\s>]/.test(mainCode), 'R02', 'main.jsx ครอบ application ด้วย <HashRouter>');\n\nconst appCode = await code('src/App.jsx');\nfor (const route of ['requests/new', 'requests/:requestId', 'about', '*']) {\n  record(\n    appCode.includes(`path=\"${route}\"`) || appCode.includes(`path='${route}'`),\n    'R02-R05',\n    `Route ${route}`,\n  );\n}\nrecord(/<\\s*Route\\s+index/.test(appCode), 'R02', 'Dashboard index route');\n\nconst layoutCode = await code('src/pages/AppLayout.jsx');\nrecord(/<\\s*Outlet\\s*\\/?>/.test(layoutCode), 'R02', 'AppLayout render <Outlet /> จริง (ไม่ใช่แค่คอมเมนต์)');\n\nconst detailCode = await code('src/pages/RequestDetailPage.jsx');\nrecord(/useParams\\s*\\(/.test(detailCode), 'R04', 'RequestDetailPage เรียก useParams()');\n\nconst newPageCode = await code('src/pages/NewRequestPage.jsx');\nrecord(/useNavigate\\s*\\(/.test(newPageCode), 'R11', 'NewRequestPage เรียก useNavigate()', 2);\n\n/* ------------------------------------------------------------------ */\n/* 4. Service และ Storage — โครงสร้าง                                  */\n/* ------------------------------------------------------------------ */\n\nconst serviceCode = await code('src/services/requestService.js');\nfor (const functionName of ['getRequests', 'getRequestById', 'addRequest', 'deleteRequest', 'resetRequests']) {\n  record(\n    new RegExp(`export\\\\s+async\\\\s+function\\\\s+${functionName}\\\\b`).test(serviceCode),\n    'R07',\n    `Service export ${functionName}`,\n  );\n}\nrecord(/response\\s*\\.\\s*ok/.test(serviceCode), 'R10', 'Service ตรวจ response.ok หลัง fetch');\nrecord(\n  !/import\\.meta\\.env/.test(serviceCode) || /import\\.meta\\.env\\s*\\?\\./.test(serviceCode),\n  'R10',\n  'ใช้ import.meta.env?.BASE_URL แบบ optional chaining เพื่อให้ทดสอบนอก Vite ได้',\n);\n\nconst storageCode = await code('src/services/requestStorage.js');\nrecord(storageCode.includes(\"STORAGE_KEY = 'engse203-campus-requests-v1'\"), 'R14', 'STORAGE_KEY ถูกต้อง');\nrecord(/SCHEMA_VERSION\\s*=\\s*1/.test(storageCode), 'R14', 'SCHEMA_VERSION = 1');\nfor (const functionName of ['readStoredRequests', 'writeStoredRequests', 'clearStoredRequests']) {\n  record(\n    new RegExp(`export\\\\s+function\\\\s+${functionName}\\\\b`).test(storageCode),\n    'R14',\n    `Storage export ${functionName}`,\n  );\n}\nrecord(\n  !/localStorage\\s*\\.\\s*clear\\s*\\(/.test(storageCode),\n  'R14',\n  'ห้ามใช้ localStorage.clear() — ลบเฉพาะ STORAGE_KEY ของ LAB05',\n  2,\n);\n\n/* ------------------------------------------------------------------ */\n/* 5. Boundary — fetch และ localStorage ต้องอยู่ในโมดูลเดียว          */\n/* ------------------------------------------------------------------ */\n\nconst sourceFiles = await walk('src');\n\nfor (const file of sourceFiles) {\n  const fileCode = stripComments(await text(file));\n  if (file !== path.join('src', 'services', 'requestStorage.js')) {\n    record(!/localStorage\\s*\\./.test(fileCode), 'R07', `${file}: ไม่มี direct localStorage access`);\n  }\n  if (file !== path.join('src', 'services', 'requestService.js')) {\n    record(!/\\bfetch\\s*\\(/.test(fileCode), 'R07', `${file}: ไม่มี direct fetch`);\n  }\n}\n\n/* ------------------------------------------------------------------ */\n/* 6. TODO ที่ยังไม่ได้ทำ                                              */\n/* ------------------------------------------------------------------ */\n\n/** ไฟล์ที่ต้องเสร็จตั้งแต่คาบ 5A */\nconst sessionAFiles = [\n  'src/App.jsx',\n  'src/pages/AppLayout.jsx',\n  'src/pages/DashboardPage.jsx',\n  'src/pages/RequestDetailPage.jsx',\n  'src/components/AppHeader.jsx',\n].map((file) => path.join(...file.split('/')));\n\nconst todoPattern = /throw\\s+new\\s+Error\\s*\\(\\s*['\"`]TODO/;\n\nfor (const file of sourceFiles) {\n  const fileCode = stripComments(await text(file));\n  const phase = sessionAFiles.includes(file) ? 1 : 2;\n  record(!todoPattern.test(fileCode), 'TODO', `${file}: ไม่มี TODO ที่ยังไม่ได้ทำ`, phase);\n}\n\n/* ------------------------------------------------------------------ */\n/* 7. Checker hooks                                                    */\n/* ------------------------------------------------------------------ */\n\nconst allSource = (await Promise.all(sourceFiles.map(text))).join('\\n');\n\nconst hooks = [\n  ['app-layout', 1], ['page-dashboard', 1], ['page-new-request', 1],\n  ['page-request-detail', 1], ['page-about', 1], ['page-not-found', 1],\n  ['loading-state', 1], ['error-state', 1], ['empty-state', 1],\n  ['request-list', 1], ['request-form', 1], ['retry-button', 1],\n  ['reset-button', 2],\n];\n\nfor (const [hook, phase] of hooks) {\n  record(allSource.includes(`data-testid=\"${hook}\"`), 'HOOKS', hook, phase);\n}\n\n/* ------------------------------------------------------------------ */\n/* 8. Seed data                                                        */\n/* ------------------------------------------------------------------ */\n\nlet seedRequests = null;\ntry {\n  const parsed = JSON.parse(await text('public/data/initialRequests.json'));\n  const valid = Array.isArray(parsed)\n    && parsed.length >= 3\n    && parsed.every((item) => typeof item?.id === 'string' && item.id.startsWith('REQ-'));\n  if (valid) seedRequests = parsed;\n  record(valid, 'DATA', 'seed JSON อ่านได้และมี REQ IDs อย่างน้อย 3 รายการ');\n} catch {\n  record(false, 'DATA', 'seed JSON อ่านได้และมี REQ IDs อย่างน้อย 3 รายการ');\n}\n\n/* ------------------------------------------------------------------ */\n/* 9. RUNTIME — เรียก Service/Storage จริง                             */\n/* ------------------------------------------------------------------ */\n\n/*\n * ส่วนนี้คือหัวใจของ checker v2\n *\n * v1 ตรวจเพียงว่ามี export หรือไม่ ซึ่ง starter มีครบอยู่แล้ว (ฟังก์ชัน\n * throw TODO ข้างใน) ทำให้ผู้เรียนได้คะแนนเต็มโดยที่ Service ยังไม่ทำงานเลย\n *\n * v2 เรียกฟังก์ชันจริงพร้อม localStorage และ fetch จำลอง แล้วตรวจว่า\n * \"ผลลัพธ์ตรง contract หรือไม่\" โดยไม่บอกวิธีเขียน\n */\n\nconst fallbackSeed = [\n  { id: 'REQ-001', requesterName: 'ผู้เรียน ทดสอบ', requestType: 'แจ้งซ่อม', location: 'C3-301', details: 'รายละเอียดทดสอบครบสิบตัว', priority: 'normal', status: 'pending' },\n  { id: 'REQ-002', requesterName: 'ผู้สอน ทดสอบ', requestType: 'ขอใช้ห้อง', location: 'C3-302', details: 'รายละเอียดตัวอย่างลำดับสอง', priority: 'urgent', status: 'completed' },\n  { id: 'REQ-003', requesterName: 'ผู้ช่วยสอน ทดสอบ', requestType: 'บริการบัญชีผู้ใช้', location: 'C3-303', details: 'รายละเอียดตัวอย่างลำดับสาม', priority: 'normal', status: 'in-progress' },\n];\n\nconst runtimeSeed = seedRequests ?? fallbackSeed;\n\nconst storageValues = new Map();\nglobalThis.localStorage = {\n  getItem: (key) => (storageValues.has(key) ? storageValues.get(key) : null),\n  setItem: (key, value) => storageValues.set(key, String(value)),\n  removeItem: (key) => storageValues.delete(key),\n};\nglobalThis.__ENGSE203_SKIP_DELAY__ = true;\nglobalThis.fetch = async () => ({ ok: true, json: async () => structuredClone(runtimeSeed) });\n\nlet storageModule = null;\nlet serviceModule = null;\nlet importError = '';\n\ntry {\n  storageModule = await import(pathToFileURL(path.join(root, 'src/services/requestStorage.js')).href);\n  serviceModule = await import(pathToFileURL(path.join(root, 'src/services/requestService.js')).href);\n} catch (error) {\n  importError = error instanceof Error ? error.message : String(error);\n}\n\nrecord(Boolean(storageModule && serviceModule), 'RUNTIME', `import Service/Storage ได้${importError ? ` — ${shorten(importError)}` : ''}`);\n\nfunction shorten(message) {\n  const oneLine = String(message).replace(/\\s+/g, ' ').trim();\n  return oneLine.length > 90 ? `${oneLine.slice(0, 90)}…` : oneLine;\n}\n\nfunction assert(condition, detail) {\n  if (!condition) throw new Error(detail ?? 'ผลลัพธ์ไม่ตรง contract');\n}\n\n/**\n * รันการตรวจเชิงพฤติกรรมหนึ่งรายการ\n * ถ้าโค้ดผู้เรียน throw (เช่น TODO ที่ยังไม่ทำ) จะถูกจับและรายงานเป็น TODO\n * ไม่ทำให้ checker ล้มทั้งตัว\n */\nasync function behaviour(id, message, run, phase = 1) {\n  if (skipInSessionA(phase)) {\n    checks.push({ skipped: true, id, message });\n    return;\n  }\n  if (!storageModule || !serviceModule) {\n    record(false, id, `${message} — ยัง import โมดูลไม่ได้`, phase);\n    return;\n  }\n  try {\n    await run();\n    record(true, id, message, phase);\n  } catch (error) {\n    const reason = error instanceof Error ? error.message : String(error);\n    record(false, id, `${message} — ${shorten(reason)}`, phase);\n  }\n}\n\nconst seedCount = runtimeSeed.length;\n\n/* --- คาบ 5A: read path --------------------------------------------- */\n\nawait behaviour('R10', 'getRequests() คืนรายการคำร้องเมื่อโหลดสำเร็จ', async () => {\n  const result = await serviceModule.getRequests();\n  assert(Array.isArray(result), 'ต้องคืน array');\n  assert(result.length === seedCount, `ต้องได้ ${seedCount} รายการจาก seed แต่ได้ ${result.length}`);\n});\n\nawait behaviour('R09', \"getRequests({scenario:'empty'}) คืน array ว่าง\", async () => {\n  const result = await serviceModule.getRequests({ scenario: 'empty' });\n  assert(Array.isArray(result) && result.length === 0, 'ต้องคืน array ว่าง');\n});\n\nawait behaviour('R09', \"getRequests({scenario:'error'}) ต้อง reject\", async () => {\n  let rejected = false;\n  try {\n    await serviceModule.getRequests({ scenario: 'error' });\n  } catch {\n    rejected = true;\n  }\n  assert(rejected, 'ต้อง throw เพื่อให้ UI แสดง ErrorState');\n});\n\nawait behaviour('R04', 'getRequestById() คืนคำร้องที่ ID ตรงกัน', async () => {\n  const list = await serviceModule.getRequests();\n  const target = list[0];\n  const found = await serviceModule.getRequestById(target.id);\n  assert(found && found.id === target.id, 'ต้องคืนคำร้องที่ ID ตรงกัน');\n});\n\nawait behaviour('R04', 'getRequestById() คืน null เมื่อไม่พบ resource', async () => {\n  const missing = await serviceModule.getRequestById('REQ-ไม่มีจริง-999');\n  assert(missing === null, 'ต้องคืน null ไม่ใช่ throw หรือ undefined');\n});\n\n/* --- คาบ 5B: write path และ storage --------------------------------- */\n\nawait behaviour('R14', 'readStoredRequests() คืน status \"missing\" เมื่อยังไม่มีข้อมูล', async () => {\n  storageValues.clear();\n  const result = storageModule.readStoredRequests();\n  assert(result?.status === 'missing', `ได้ status = ${result?.status}`);\n}, 2);\n\nawait behaviour('R14', 'writeStoredRequests() แล้วอ่านกลับได้ status \"valid\"', async () => {\n  storageValues.clear();\n  storageModule.writeStoredRequests(structuredClone(runtimeSeed));\n  const result = storageModule.readStoredRequests();\n  assert(result?.status === 'valid', `ได้ status = ${result?.status}`);\n  assert(result.requests?.length === seedCount, 'จำนวนรายการที่อ่านกลับไม่ตรง');\n}, 2);\n\nawait behaviour('R14', 'readStoredRequests() คืน status \"invalid\" เมื่อ JSON เสีย', async () => {\n  storageValues.clear();\n  storageValues.set(storageModule.STORAGE_KEY, '{ ข้อมูลนี้ไม่ใช่ JSON');\n  const result = storageModule.readStoredRequests();\n  assert(result?.status === 'invalid', `ได้ status = ${result?.status} — ห้าม throw ออกไปทำให้ UI พัง`);\n}, 2);\n\nawait behaviour('R14', 'readStoredRequests() คืน status \"invalid\" เมื่อ schemaVersion ไม่ตรง', async () => {\n  storageValues.clear();\n  storageValues.set(storageModule.STORAGE_KEY, JSON.stringify({ schemaVersion: 99, requests: [] }));\n  const result = storageModule.readStoredRequests();\n  assert(result?.status === 'invalid', `ได้ status = ${result?.status}`);\n}, 2);\n\nawait behaviour('R14', 'readStoredRequests() คืน status \"invalid\" เมื่อมี ID ซ้ำ', async () => {\n  storageValues.clear();\n  const duplicated = [structuredClone(runtimeSeed[0]), structuredClone(runtimeSeed[0])];\n  storageValues.set(storageModule.STORAGE_KEY, JSON.stringify({\n    schemaVersion: 1,\n    updatedAt: new Date().toISOString(),\n    requests: duplicated,\n  }));\n  const result = storageModule.readStoredRequests();\n  assert(result?.status === 'invalid', `ได้ status = ${result?.status}`);\n}, 2);\n\nawait behaviour('R07', 'getRequests() อ่านจาก storage เมื่อมีข้อมูลที่ถูกต้องอยู่แล้ว', async () => {\n  storageValues.clear();\n  await serviceModule.getRequests();\n  const stored = storageModule.readStoredRequests();\n  assert(stored?.status === 'valid', 'หลังโหลดครั้งแรก ต้องมี envelope ที่ถูกต้องใน storage');\n}, 2);\n\nawait behaviour('R14', 'ข้อมูลเสียหายต้องกู้คืนได้และแจ้ง recovery', async () => {\n  storageValues.clear();\n  storageValues.set(storageModule.STORAGE_KEY, '{ ข้อมูลเสีย');\n  let recoveryMessage = '';\n  const result = await serviceModule.getRequests({\n    onRecovery: (message) => { recoveryMessage = message; },\n  });\n  assert(result.length === seedCount, 'ต้องกู้ข้อมูลตัวอย่างกลับมา');\n  assert(recoveryMessage.length > 0, 'ต้องเรียก onRecovery เพื่อให้ UI แจ้งผู้ใช้ได้');\n  assert(storageModule.readStoredRequests()?.status === 'valid', 'ต้องเขียน envelope ที่สะอาดทับ');\n}, 2);\n\nawait behaviour('R11', 'addRequest() สร้างคำร้องใหม่ status pending และ ID ขึ้นต้น REQ-', async () => {\n  storageValues.clear();\n  await serviceModule.getRequests();\n  const created = await serviceModule.addRequest({\n    requesterName: 'นักศึกษา ทดสอบ',\n    requestType: 'แจ้งซ่อม',\n    location: 'C3-401',\n    details: 'รายละเอียดสำหรับคำร้องใหม่ที่ยาวพอ',\n    priority: 'urgent',\n  });\n  assert(typeof created?.id === 'string' && created.id.startsWith('REQ-'), 'ID ต้องขึ้นต้นด้วย REQ-');\n  assert(created.status === 'pending', `status ต้องเป็น pending แต่ได้ ${created.status}`);\n  const stored = storageModule.readStoredRequests();\n  assert(stored?.requests?.length === seedCount + 1, 'คำร้องใหม่ต้องถูก persist');\n}, 2);\n\nawait behaviour('R11', 'addRequest() ปฏิเสธข้อมูลที่ไม่ครบด้วยข้อความที่ผู้ใช้เข้าใจได้', async () => {\n  storageValues.clear();\n  await serviceModule.getRequests();\n  let caught = null;\n  try {\n    await serviceModule.addRequest({ requestType: 'แจ้งซ่อม', location: 'C3-401', details: 'รายละเอียดยาวพอสมควร', priority: 'normal' });\n  } catch (error) {\n    caught = error;\n  }\n  assert(caught !== null, 'ข้อมูลที่ไม่มี requesterName ต้องถูกปฏิเสธ ไม่ใช่ผ่านไปแล้วพังทีหลัง');\n  // การ crash เป็น TypeError ไม่นับว่า validate สำเร็จ — ผู้ใช้จะเห็นข้อความทางเทคนิค\n  // ซึ่งขัดกับ Technical Contract §12 ที่ห้ามแสดงรายละเอียดภายในระบบใน UI\n  assert(\n    !(caught instanceof TypeError) && !/Cannot read propert/i.test(caught.message ?? ''),\n    'ต้องตรวจข้อมูลก่อนใช้งาน แล้ว throw ข้อความที่ผู้ใช้เข้าใจได้ ไม่ใช่ปล่อยให้พังเป็น TypeError',\n  );\n  const stored = storageModule.readStoredRequests();\n  assert(stored?.requests?.length === seedCount, 'ข้อมูลที่ไม่ผ่าน validation ต้องไม่ถูกบันทึก');\n}, 2);\n\nawait behaviour('R12', 'deleteRequest() ลบถูก ID และ persist', async () => {\n  storageValues.clear();\n  const list = await serviceModule.getRequests();\n  const targetId = list[0].id;\n  const next = await serviceModule.deleteRequest(targetId);\n  assert(next.length === seedCount - 1, 'จำนวนรายการต้องลดลง 1');\n  assert(!next.some((request) => request.id === targetId), 'ต้องไม่มี ID ที่ลบแล้วหลงเหลือ');\n  const stored = storageModule.readStoredRequests();\n  assert(stored?.requests?.length === seedCount - 1, 'ผลการลบต้องถูก persist');\n}, 2);\n\nawait behaviour('R13', 'resetRequests() คืนข้อมูลตัวอย่างเริ่มต้น', async () => {\n  storageValues.clear();\n  await serviceModule.getRequests();\n  await serviceModule.deleteRequest((await serviceModule.getRequests())[0].id);\n  const reset = await serviceModule.resetRequests();\n  assert(reset.length === seedCount, 'ต้องคืน seed ครบทุกรายการ');\n  assert(storageModule.readStoredRequests()?.requests?.length === seedCount, 'seed ที่คืนมาต้องถูก persist');\n}, 2);\n\nawait behaviour('R14', 'clearStoredRequests() ลบเฉพาะคีย์ของ LAB05', async () => {\n  storageValues.clear();\n  storageValues.set('ข้อมูลของแอปอื่น', 'ห้ามลบ');\n  await serviceModule.getRequests();\n  storageModule.clearStoredRequests();\n  assert(storageValues.get('ข้อมูลของแอปอื่น') === 'ห้ามลบ', 'ห้ามลบข้อมูลของ application อื่นใน origin เดียวกัน');\n  assert(!storageValues.has(storageModule.STORAGE_KEY), 'ต้องลบคีย์ของ LAB05');\n}, 2);\n\n/* ------------------------------------------------------------------ */\n/* 10. รายงานผล                                                        */\n/* ------------------------------------------------------------------ */\n\nfor (const result of checks) {\n  if (result.skipped) {\n    console.log(`[SKIP] ${result.id} ${result.message}`);\n    continue;\n  }\n  console.log(`${result.ok ? '[PASS]' : '[TODO]'} ${result.id} ${result.message}`);\n}\n\nconst evaluated = checks.filter((result) => !result.skipped);\nconst failed = evaluated.filter((result) => !result.ok);\nconst skipped = checks.length - evaluated.length;\n\nconsole.log(`\\nENGSE203 LAB05 checker v2 — ขอบเขต: ${sessionLabel}`);\nconsole.log(`ผ่าน ${evaluated.length - failed.length}/${evaluated.length} รายการ${skipped > 0 ? ` · ข้าม ${skipped} รายการ (ตรวจในคาบ 5B)` : ''}`);\nconsole.log('หมายเหตุ: checker ตรวจ contract เท่านั้น ต้องทำ TC-L5 runtime/manual ใน browser ต่อ');\n\nif (failed.length > 0) {\n  console.log('\\nทำ TODO ตาม Checkpoint Guide แล้วรัน npm run check อีกครั้ง');\n  if (session === 0 || session === 2) {\n    console.log('ถ้ากำลังอยู่ในคาบ 5A ให้ใช้: npm run check -- --session=1');\n  }\n  process.exitCode = 1;\n}\n"}
+/**
+ * ENGSE203 LAB05 — Public Project Checker
+ *
+ * v2.0.0 — รองรับการสอนแบบ 2 คาบ (5A / 5B)
+ *
+ * การใช้งาน
+ *   npm run check                    ตรวจทั้งหมด (ใช้ตอนส่งงาน)
+ *   npm run check -- --session=1     ตรวจเฉพาะงานของคาบ 5A
+ *   npm run check -- --session=2     ตรวจทั้งหมด (เหมือนไม่ใส่ flag)
+ *
+ * checker นี้ตรวจ 3 ระดับ
+ *   1. STATIC   — ไฟล์, dependency, โครงสร้างและ contract ที่อ่านได้จาก source
+ *   2. TODO     — ไม่มี TODO ที่ยังไม่ได้ทำหลงเหลือในไฟล์ที่ควรเสร็จแล้ว
+ *   3. RUNTIME  — เรียก Service/Storage จริงพร้อม localStorage และ fetch จำลอง
+ *
+ * checker ตรวจ contract เท่านั้น ไม่ได้บอกวิธีทำ และไม่แทน TC-L5-01–24
+ * ที่ต้องทดสอบด้วยตนเองใน browser
+ */
+
+import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import { pathToFileURL } from 'node:url';
+
+const root = process.cwd();
+
+/* ------------------------------------------------------------------ */
+/* Session flag                                                        */
+/* ------------------------------------------------------------------ */
+
+const sessionArgument = process.argv.find((argument) => argument.startsWith('--session='));
+const session = sessionArgument ? Number(sessionArgument.slice('--session='.length)) : 0;
+
+if (![0, 1, 2].includes(session)) {
+  console.error('ค่า --session ต้องเป็น 1 หรือ 2 เท่านั้น (ไม่ใส่ = ตรวจทั้งหมด)');
+  process.exit(2);
+}
+
+/** true เมื่อ checker ต้องตรวจงานของคาบ 5B ด้วย */
+const includeSessionB = session !== 1;
+
+const sessionLabel = session === 1 ? 'คาบ 5A (Read Path)'
+  : session === 2 ? 'คาบ 5B (Write Path) + ทั้งหมด'
+    : 'ทั้งหมด';
+
+/* ------------------------------------------------------------------ */
+/* Check registry                                                      */
+/* ------------------------------------------------------------------ */
+
+const checks = [];
+
+/**
+ * บันทึกผลการตรวจหนึ่งรายการ
+ * @param {boolean} ok       ผ่านหรือไม่
+ * @param {string}  id       requirement id เช่น 'R02'
+ * @param {string}  message  ข้อความที่ผู้เรียนเห็น
+ * @param {1|2}     phase    1 = ตรวจตั้งแต่คาบ 5A · 2 = ตรวจเมื่อถึงคาบ 5B
+ */
+function record(ok, id, message, phase = 1) {
+  if (phase === 2 && !includeSessionB) {
+    checks.push({ skipped: true, id, message });
+    return;
+  }
+  checks.push({ ok: Boolean(ok), id, message });
+}
+
+/** ข้ามการตรวจของคาบ 5B โดยไม่ต้องคำนวณเงื่อนไข */
+function skipInSessionA(phase) {
+  return phase === 2 && !includeSessionB;
+}
+
+/* ------------------------------------------------------------------ */
+/* Source helpers                                                      */
+/* ------------------------------------------------------------------ */
+
+async function text(file) {
+  return readFile(path.join(root, file), 'utf8');
+}
+
+async function exists(file) {
+  try {
+    await readFile(path.join(root, file));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ลบคอมเมนต์ออกจาก source ก่อนตรวจด้วย regex
+ *
+ * เหตุผล: คำสำคัญอย่าง Outlet, useParams, useNavigate และ response.ok
+ * ปรากฏอยู่ในคอมเมนต์ TODO ของ starter ถ้าไม่ลบก่อน checker จะรายงานว่า
+ * ผ่านทั้งที่ยังไม่มีโค้ดจริง
+ *
+ * ครอบคลุมทั้ง block comment (รวมคอมเมนต์ในรูปแบบที่ใช้ใน JSX) และ line
+ * comment โดยไม่ตัด // ที่อยู่หลังเครื่องหมาย : เพื่อไม่ให้ URL ใน string เสียหาย
+ */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+}
+
+/** อ่านไฟล์แล้วลบคอมเมนต์ให้เลย — ใช้กับการตรวจ regex ทุกจุด */
+async function code(file) {
+  return stripComments(await text(file));
+}
+
+async function walk(directory) {
+  const entries = await readdir(path.join(root, directory), { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const relative = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await walk(relative));
+    else if (/\.(js|jsx)$/.test(entry.name)) files.push(relative);
+  }
+  return files;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1. Required files                                                   */
+/* ------------------------------------------------------------------ */
+
+const requiredFiles = [
+  'public/data/initialRequests.json', 'src/main.jsx', 'src/App.jsx', 'src/styles.css',
+  'src/pages/AppLayout.jsx', 'src/pages/DashboardPage.jsx', 'src/pages/NewRequestPage.jsx',
+  'src/pages/RequestDetailPage.jsx', 'src/pages/AboutPage.jsx', 'src/pages/NotFoundPage.jsx',
+  'src/services/requestService.js', 'src/services/requestStorage.js',
+  'src/components/LoadingState.jsx', 'src/components/ErrorState.jsx',
+  'src/components/RequestForm.jsx', 'src/components/RequestList.jsx',
+  'vite.config.js', 'package.json', 'package-lock.json', 'README.md',
+];
+
+for (const file of requiredFiles) {
+  record(await exists(file), 'FILES', file);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Dependency และ build contract                                    */
+/* ------------------------------------------------------------------ */
+
+const packageJson = JSON.parse(await text('package.json'));
+record(packageJson.dependencies?.['react-router-dom'] === '7.18.2', 'DEPS', 'react-router-dom ต้องเป็น 7.18.2');
+record(packageJson.engines?.node === '>=22.12.0', 'DEPS', 'Node.js engine >=22.12.0');
+record(packageJson.scripts?.check === 'node scripts/check-project.mjs', 'SCRIPTS', 'npm run check');
+
+const viteConfig = await code('vite.config.js');
+record(/base\s*:\s*['"]\.\/['"]/.test(viteConfig), 'BUILD', "Vite base: './'");
+
+/* ------------------------------------------------------------------ */
+/* 3. Router contract — ตรวจจาก "โค้ดจริง" ไม่ใช่คอมเมนต์            */
+/* ------------------------------------------------------------------ */
+
+const mainCode = await code('src/main.jsx');
+record(/<\s*HashRouter[\s>]/.test(mainCode), 'R02', 'main.jsx ครอบ application ด้วย <HashRouter>');
+
+const appCode = await code('src/App.jsx');
+for (const route of ['requests/new', 'requests/:requestId', 'about', '*']) {
+  record(
+    appCode.includes(`path="${route}"`) || appCode.includes(`path='${route}'`),
+    'R02-R05',
+    `Route ${route}`,
+  );
+}
+record(/<\s*Route\s+index/.test(appCode), 'R02', 'Dashboard index route');
+
+const layoutCode = await code('src/pages/AppLayout.jsx');
+record(/<\s*Outlet\s*\/?>/.test(layoutCode), 'R02', 'AppLayout render <Outlet /> จริง (ไม่ใช่แค่คอมเมนต์)');
+
+const detailCode = await code('src/pages/RequestDetailPage.jsx');
+record(/useParams\s*\(/.test(detailCode), 'R04', 'RequestDetailPage เรียก useParams()');
+
+const newPageCode = await code('src/pages/NewRequestPage.jsx');
+record(/useNavigate\s*\(/.test(newPageCode), 'R11', 'NewRequestPage เรียก useNavigate()', 2);
+
+/* ------------------------------------------------------------------ */
+/* 4. Service และ Storage — โครงสร้าง                                  */
+/* ------------------------------------------------------------------ */
+
+const serviceCode = await code('src/services/requestService.js');
+for (const functionName of ['getRequests', 'getRequestById', 'addRequest', 'deleteRequest', 'resetRequests']) {
+  record(
+    new RegExp(`export\\s+async\\s+function\\s+${functionName}\\b`).test(serviceCode),
+    'R07',
+    `Service export ${functionName}`,
+  );
+}
+record(/response\s*\.\s*ok/.test(serviceCode), 'R10', 'Service ตรวจ response.ok หลัง fetch');
+record(
+  !/import\.meta\.env/.test(serviceCode) || /import\.meta\.env\s*\?\./.test(serviceCode),
+  'R10',
+  'ใช้ import.meta.env?.BASE_URL แบบ optional chaining เพื่อให้ทดสอบนอก Vite ได้',
+);
+
+const storageCode = await code('src/services/requestStorage.js');
+record(storageCode.includes("STORAGE_KEY = 'engse203-campus-requests-v1'"), 'R14', 'STORAGE_KEY ถูกต้อง');
+record(/SCHEMA_VERSION\s*=\s*1/.test(storageCode), 'R14', 'SCHEMA_VERSION = 1');
+for (const functionName of ['readStoredRequests', 'writeStoredRequests', 'clearStoredRequests']) {
+  record(
+    new RegExp(`export\\s+function\\s+${functionName}\\b`).test(storageCode),
+    'R14',
+    `Storage export ${functionName}`,
+  );
+}
+record(
+  !/localStorage\s*\.\s*clear\s*\(/.test(storageCode),
+  'R14',
+  'ห้ามใช้ localStorage.clear() — ลบเฉพาะ STORAGE_KEY ของ LAB05',
+  2,
+);
+
+/* ------------------------------------------------------------------ */
+/* 5. Boundary — fetch และ localStorage ต้องอยู่ในโมดูลเดียว          */
+/* ------------------------------------------------------------------ */
+
+const sourceFiles = await walk('src');
+
+for (const file of sourceFiles) {
+  const fileCode = stripComments(await text(file));
+  if (file !== path.join('src', 'services', 'requestStorage.js')) {
+    record(!/localStorage\s*\./.test(fileCode), 'R07', `${file}: ไม่มี direct localStorage access`);
+  }
+  if (file !== path.join('src', 'services', 'requestService.js')) {
+    record(!/\bfetch\s*\(/.test(fileCode), 'R07', `${file}: ไม่มี direct fetch`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. TODO ที่ยังไม่ได้ทำ                                              */
+/* ------------------------------------------------------------------ */
+
+/** ไฟล์ที่ต้องเสร็จตั้งแต่คาบ 5A */
+const sessionAFiles = [
+  'src/App.jsx',
+  'src/pages/AppLayout.jsx',
+  'src/pages/DashboardPage.jsx',
+  'src/pages/RequestDetailPage.jsx',
+  'src/components/AppHeader.jsx',
+].map((file) => path.join(...file.split('/')));
+
+const todoPattern = /throw\s+new\s+Error\s*\(\s*['"`]TODO/;
+
+for (const file of sourceFiles) {
+  const fileCode = stripComments(await text(file));
+  const phase = sessionAFiles.includes(file) ? 1 : 2;
+  record(!todoPattern.test(fileCode), 'TODO', `${file}: ไม่มี TODO ที่ยังไม่ได้ทำ`, phase);
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. Checker hooks                                                    */
+/* ------------------------------------------------------------------ */
+
+const allSource = (await Promise.all(sourceFiles.map(text))).join('\n');
+
+const hooks = [
+  ['app-layout', 1], ['page-dashboard', 1], ['page-new-request', 1],
+  ['page-request-detail', 1], ['page-about', 1], ['page-not-found', 1],
+  ['loading-state', 1], ['error-state', 1], ['empty-state', 1],
+  ['request-list', 1], ['request-form', 1], ['retry-button', 1],
+  ['reset-button', 2],
+];
+
+for (const [hook, phase] of hooks) {
+  record(allSource.includes(`data-testid="${hook}"`), 'HOOKS', hook, phase);
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. Seed data                                                        */
+/* ------------------------------------------------------------------ */
+
+let seedRequests = null;
+try {
+  const parsed = JSON.parse(await text('public/data/initialRequests.json'));
+  const valid = Array.isArray(parsed)
+    && parsed.length >= 3
+    && parsed.every((item) => typeof item?.id === 'string' && item.id.startsWith('REQ-'));
+  if (valid) seedRequests = parsed;
+  record(valid, 'DATA', 'seed JSON อ่านได้และมี REQ IDs อย่างน้อย 3 รายการ');
+} catch {
+  record(false, 'DATA', 'seed JSON อ่านได้และมี REQ IDs อย่างน้อย 3 รายการ');
+}
+
+/* ------------------------------------------------------------------ */
+/* 9. RUNTIME — เรียก Service/Storage จริง                             */
+/* ------------------------------------------------------------------ */
+
+/*
+ * ส่วนนี้คือหัวใจของ checker v2
+ *
+ * v1 ตรวจเพียงว่ามี export หรือไม่ ซึ่ง starter มีครบอยู่แล้ว (ฟังก์ชัน
+ * throw TODO ข้างใน) ทำให้ผู้เรียนได้คะแนนเต็มโดยที่ Service ยังไม่ทำงานเลย
+ *
+ * v2 เรียกฟังก์ชันจริงพร้อม localStorage และ fetch จำลอง แล้วตรวจว่า
+ * "ผลลัพธ์ตรง contract หรือไม่" โดยไม่บอกวิธีเขียน
+ */
+
+const fallbackSeed = [
+  { id: 'REQ-001', requesterName: 'ผู้เรียน ทดสอบ', requestType: 'แจ้งซ่อม', location: 'C3-301', details: 'รายละเอียดทดสอบครบสิบตัว', priority: 'normal', status: 'pending' },
+  { id: 'REQ-002', requesterName: 'ผู้สอน ทดสอบ', requestType: 'ขอใช้ห้อง', location: 'C3-302', details: 'รายละเอียดตัวอย่างลำดับสอง', priority: 'urgent', status: 'completed' },
+  { id: 'REQ-003', requesterName: 'ผู้ช่วยสอน ทดสอบ', requestType: 'บริการบัญชีผู้ใช้', location: 'C3-303', details: 'รายละเอียดตัวอย่างลำดับสาม', priority: 'normal', status: 'in-progress' },
+];
+
+const runtimeSeed = seedRequests ?? fallbackSeed;
+
+const storageValues = new Map();
+globalThis.localStorage = {
+  getItem: (key) => (storageValues.has(key) ? storageValues.get(key) : null),
+  setItem: (key, value) => storageValues.set(key, String(value)),
+  removeItem: (key) => storageValues.delete(key),
+};
+globalThis.__ENGSE203_SKIP_DELAY__ = true;
+globalThis.fetch = async () => ({ ok: true, json: async () => structuredClone(runtimeSeed) });
+
+let storageModule = null;
+let serviceModule = null;
+let importError = '';
+
+try {
+  storageModule = await import(pathToFileURL(path.join(root, 'src/services/requestStorage.js')).href);
+  serviceModule = await import(pathToFileURL(path.join(root, 'src/services/requestService.js')).href);
+} catch (error) {
+  importError = error instanceof Error ? error.message : String(error);
+}
+
+record(Boolean(storageModule && serviceModule), 'RUNTIME', `import Service/Storage ได้${importError ? ` — ${shorten(importError)}` : ''}`);
+
+function shorten(message) {
+  const oneLine = String(message).replace(/\s+/g, ' ').trim();
+  return oneLine.length > 90 ? `${oneLine.slice(0, 90)}…` : oneLine;
+}
+
+function assert(condition, detail) {
+  if (!condition) throw new Error(detail ?? 'ผลลัพธ์ไม่ตรง contract');
+}
+
+/**
+ * รันการตรวจเชิงพฤติกรรมหนึ่งรายการ
+ * ถ้าโค้ดผู้เรียน throw (เช่น TODO ที่ยังไม่ทำ) จะถูกจับและรายงานเป็น TODO
+ * ไม่ทำให้ checker ล้มทั้งตัว
+ */
+async function behaviour(id, message, run, phase = 1) {
+  if (skipInSessionA(phase)) {
+    checks.push({ skipped: true, id, message });
+    return;
+  }
+  if (!storageModule || !serviceModule) {
+    record(false, id, `${message} — ยัง import โมดูลไม่ได้`, phase);
+    return;
+  }
+  try {
+    await run();
+    record(true, id, message, phase);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    record(false, id, `${message} — ${shorten(reason)}`, phase);
+  }
+}
+
+const seedCount = runtimeSeed.length;
+
+/* --- คาบ 5A: read path --------------------------------------------- */
+
+await behaviour('R10', 'getRequests() คืนรายการคำร้องเมื่อโหลดสำเร็จ', async () => {
+  const result = await serviceModule.getRequests();
+  assert(Array.isArray(result), 'ต้องคืน array');
+  assert(result.length === seedCount, `ต้องได้ ${seedCount} รายการจาก seed แต่ได้ ${result.length}`);
+});
+
+await behaviour('R09', "getRequests({scenario:'empty'}) คืน array ว่าง", async () => {
+  const result = await serviceModule.getRequests({ scenario: 'empty' });
+  assert(Array.isArray(result) && result.length === 0, 'ต้องคืน array ว่าง');
+});
+
+await behaviour('R09', "getRequests({scenario:'error'}) ต้อง reject", async () => {
+  let rejected = false;
+  try {
+    await serviceModule.getRequests({ scenario: 'error' });
+  } catch {
+    rejected = true;
+  }
+  assert(rejected, 'ต้อง throw เพื่อให้ UI แสดง ErrorState');
+});
+
+await behaviour('R04', 'getRequestById() คืนคำร้องที่ ID ตรงกัน', async () => {
+  const list = await serviceModule.getRequests();
+  const target = list[0];
+  const found = await serviceModule.getRequestById(target.id);
+  assert(found && found.id === target.id, 'ต้องคืนคำร้องที่ ID ตรงกัน');
+});
+
+await behaviour('R04', 'getRequestById() คืน null เมื่อไม่พบ resource', async () => {
+  const missing = await serviceModule.getRequestById('REQ-ไม่มีจริง-999');
+  assert(missing === null, 'ต้องคืน null ไม่ใช่ throw หรือ undefined');
+});
+
+/* --- คาบ 5B: write path และ storage --------------------------------- */
+
+await behaviour('R14', 'readStoredRequests() คืน status "missing" เมื่อยังไม่มีข้อมูล', async () => {
+  storageValues.clear();
+  const result = storageModule.readStoredRequests();
+  assert(result?.status === 'missing', `ได้ status = ${result?.status}`);
+}, 2);
+
+await behaviour('R14', 'writeStoredRequests() แล้วอ่านกลับได้ status "valid"', async () => {
+  storageValues.clear();
+  storageModule.writeStoredRequests(structuredClone(runtimeSeed));
+  const result = storageModule.readStoredRequests();
+  assert(result?.status === 'valid', `ได้ status = ${result?.status}`);
+  assert(result.requests?.length === seedCount, 'จำนวนรายการที่อ่านกลับไม่ตรง');
+}, 2);
+
+await behaviour('R14', 'readStoredRequests() คืน status "invalid" เมื่อ JSON เสีย', async () => {
+  storageValues.clear();
+  storageValues.set(storageModule.STORAGE_KEY, '{ ข้อมูลนี้ไม่ใช่ JSON');
+  const result = storageModule.readStoredRequests();
+  assert(result?.status === 'invalid', `ได้ status = ${result?.status} — ห้าม throw ออกไปทำให้ UI พัง`);
+}, 2);
+
+await behaviour('R14', 'readStoredRequests() คืน status "invalid" เมื่อ schemaVersion ไม่ตรง', async () => {
+  storageValues.clear();
+  storageValues.set(storageModule.STORAGE_KEY, JSON.stringify({ schemaVersion: 99, requests: [] }));
+  const result = storageModule.readStoredRequests();
+  assert(result?.status === 'invalid', `ได้ status = ${result?.status}`);
+}, 2);
+
+await behaviour('R14', 'readStoredRequests() คืน status "invalid" เมื่อมี ID ซ้ำ', async () => {
+  storageValues.clear();
+  const duplicated = [structuredClone(runtimeSeed[0]), structuredClone(runtimeSeed[0])];
+  storageValues.set(storageModule.STORAGE_KEY, JSON.stringify({
+    schemaVersion: 1,
+    updatedAt: new Date().toISOString(),
+    requests: duplicated,
+  }));
+  const result = storageModule.readStoredRequests();
+  assert(result?.status === 'invalid', `ได้ status = ${result?.status}`);
+}, 2);
+
+await behaviour('R07', 'getRequests() อ่านจาก storage เมื่อมีข้อมูลที่ถูกต้องอยู่แล้ว', async () => {
+  storageValues.clear();
+  await serviceModule.getRequests();
+  const stored = storageModule.readStoredRequests();
+  assert(stored?.status === 'valid', 'หลังโหลดครั้งแรก ต้องมี envelope ที่ถูกต้องใน storage');
+}, 2);
+
+await behaviour('R14', 'ข้อมูลเสียหายต้องกู้คืนได้และแจ้ง recovery', async () => {
+  storageValues.clear();
+  storageValues.set(storageModule.STORAGE_KEY, '{ ข้อมูลเสีย');
+  let recoveryMessage = '';
+  const result = await serviceModule.getRequests({
+    onRecovery: (message) => { recoveryMessage = message; },
+  });
+  assert(result.length === seedCount, 'ต้องกู้ข้อมูลตัวอย่างกลับมา');
+  assert(recoveryMessage.length > 0, 'ต้องเรียก onRecovery เพื่อให้ UI แจ้งผู้ใช้ได้');
+  assert(storageModule.readStoredRequests()?.status === 'valid', 'ต้องเขียน envelope ที่สะอาดทับ');
+}, 2);
+
+await behaviour('R11', 'addRequest() สร้างคำร้องใหม่ status pending และ ID ขึ้นต้น REQ-', async () => {
+  storageValues.clear();
+  await serviceModule.getRequests();
+  const created = await serviceModule.addRequest({
+    requesterName: 'นักศึกษา ทดสอบ',
+    requestType: 'แจ้งซ่อม',
+    location: 'C3-401',
+    details: 'รายละเอียดสำหรับคำร้องใหม่ที่ยาวพอ',
+    priority: 'urgent',
+  });
+  assert(typeof created?.id === 'string' && created.id.startsWith('REQ-'), 'ID ต้องขึ้นต้นด้วย REQ-');
+  assert(created.status === 'pending', `status ต้องเป็น pending แต่ได้ ${created.status}`);
+  const stored = storageModule.readStoredRequests();
+  assert(stored?.requests?.length === seedCount + 1, 'คำร้องใหม่ต้องถูก persist');
+}, 2);
+
+await behaviour('R11', 'addRequest() ปฏิเสธข้อมูลที่ไม่ครบด้วยข้อความที่ผู้ใช้เข้าใจได้', async () => {
+  storageValues.clear();
+  await serviceModule.getRequests();
+  let caught = null;
+  try {
+    await serviceModule.addRequest({ requestType: 'แจ้งซ่อม', location: 'C3-401', details: 'รายละเอียดยาวพอสมควร', priority: 'normal' });
+  } catch (error) {
+    caught = error;
+  }
+  assert(caught !== null, 'ข้อมูลที่ไม่มี requesterName ต้องถูกปฏิเสธ ไม่ใช่ผ่านไปแล้วพังทีหลัง');
+  // การ crash เป็น TypeError ไม่นับว่า validate สำเร็จ — ผู้ใช้จะเห็นข้อความทางเทคนิค
+  // ซึ่งขัดกับ Technical Contract §12 ที่ห้ามแสดงรายละเอียดภายในระบบใน UI
+  assert(
+    !(caught instanceof TypeError) && !/Cannot read propert/i.test(caught.message ?? ''),
+    'ต้องตรวจข้อมูลก่อนใช้งาน แล้ว throw ข้อความที่ผู้ใช้เข้าใจได้ ไม่ใช่ปล่อยให้พังเป็น TypeError',
+  );
+  const stored = storageModule.readStoredRequests();
+  assert(stored?.requests?.length === seedCount, 'ข้อมูลที่ไม่ผ่าน validation ต้องไม่ถูกบันทึก');
+}, 2);
+
+await behaviour('R12', 'deleteRequest() ลบถูก ID และ persist', async () => {
+  storageValues.clear();
+  const list = await serviceModule.getRequests();
+  const targetId = list[0].id;
+  const next = await serviceModule.deleteRequest(targetId);
+  assert(next.length === seedCount - 1, 'จำนวนรายการต้องลดลง 1');
+  assert(!next.some((request) => request.id === targetId), 'ต้องไม่มี ID ที่ลบแล้วหลงเหลือ');
+  const stored = storageModule.readStoredRequests();
+  assert(stored?.requests?.length === seedCount - 1, 'ผลการลบต้องถูก persist');
+}, 2);
+
+await behaviour('R13', 'resetRequests() คืนข้อมูลตัวอย่างเริ่มต้น', async () => {
+  storageValues.clear();
+  await serviceModule.getRequests();
+  await serviceModule.deleteRequest((await serviceModule.getRequests())[0].id);
+  const reset = await serviceModule.resetRequests();
+  assert(reset.length === seedCount, 'ต้องคืน seed ครบทุกรายการ');
+  assert(storageModule.readStoredRequests()?.requests?.length === seedCount, 'seed ที่คืนมาต้องถูก persist');
+}, 2);
+
+await behaviour('R14', 'clearStoredRequests() ลบเฉพาะคีย์ของ LAB05', async () => {
+  storageValues.clear();
+  storageValues.set('ข้อมูลของแอปอื่น', 'ห้ามลบ');
+  await serviceModule.getRequests();
+  storageModule.clearStoredRequests();
+  assert(storageValues.get('ข้อมูลของแอปอื่น') === 'ห้ามลบ', 'ห้ามลบข้อมูลของ application อื่นใน origin เดียวกัน');
+  assert(!storageValues.has(storageModule.STORAGE_KEY), 'ต้องลบคีย์ของ LAB05');
+}, 2);
+
+/* ------------------------------------------------------------------ */
+/* 10. รายงานผล                                                        */
+/* ------------------------------------------------------------------ */
+
+for (const result of checks) {
+  if (result.skipped) {
+    console.log(`[SKIP] ${result.id} ${result.message}`);
+    continue;
+  }
+  console.log(`${result.ok ? '[PASS]' : '[TODO]'} ${result.id} ${result.message}`);
+}
+
+const evaluated = checks.filter((result) => !result.skipped);
+const failed = evaluated.filter((result) => !result.ok);
+const skipped = checks.length - evaluated.length;
+
+console.log(`\nENGSE203 LAB05 checker v2 — ขอบเขต: ${sessionLabel}`);
+console.log(`ผ่าน ${evaluated.length - failed.length}/${evaluated.length} รายการ${skipped > 0 ? ` · ข้าม ${skipped} รายการ (ตรวจในคาบ 5B)` : ''}`);
+console.log('หมายเหตุ: checker ตรวจ contract เท่านั้น ต้องทำ TC-L5 runtime/manual ใน browser ต่อ');
+
+if (failed.length > 0) {
+  console.log('\nทำ TODO ตาม Checkpoint Guide แล้วรัน npm run check อีกครั้ง');
+  if (session === 0 || session === 2) {
+    console.log('ถ้ากำลังอยู่ในคาบ 5A ให้ใช้: npm run check -- --session=1');
+  }
+  process.exitCode = 1;
+}
