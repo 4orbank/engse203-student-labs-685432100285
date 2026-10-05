@@ -1,14 +1,18 @@
-import { useMemo, useState } from 'react';
-
-import initialRequests from '../../public/data/initialRequests.json';
+import { useEffect, useMemo, useState } from 'react';
 
 import FilterBar from '../components/FilterBar.jsx';
 import RequestForm from '../components/RequestForm.jsx';
 import RequestList from '../components/RequestList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
+import {
+  addRequest,
+  deleteRequest,
+  getRequests,
+  resetRequests,
+} from '../services/requestService.js';
 
 function DashboardPage() {
-  const [requests, setRequests] = useState(initialRequests);
+  const [requests, setRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [notice, setNotice] = useState('');
 
@@ -19,7 +23,7 @@ function DashboardPage() {
       inProgress: requests.filter((request) => request.status === 'in-progress').length,
       completed: requests.filter((request) => request.status === 'completed').length,
     }),
-    [requests]
+    [requests],
   );
 
   const filteredRequests =
@@ -27,25 +31,40 @@ function DashboardPage() {
       ? requests
       : requests.filter((request) => request.status === statusFilter);
 
-  async function handleAdd(input) {
-    setRequests((current) => [
-      ...current,
-      {
-        ...input,
-        id: `REQ-W4-${Date.now()}`,
-        status: 'pending',
-      },
-    ]);
+async function handleAdd(input) {
+  const createdRequest = await addRequest(input);
+  setRequests((current) => [...current, createdRequest]);
+  setNotice('เพิ่มคำร้องแล้ว');
+}
 
-    setNotice('เพิ่มคำร้องในหน่วยความจำแล้ว');
+async function handleDelete(requestId) {
+  const nextRequests = await deleteRequest(requestId);
+  setRequests(nextRequests);
+  setNotice(`ลบคำร้อง ${requestId} แล้ว`);
+}
+
+useEffect(() => {
+  async function loadRequests() {
+    try {
+      const data = await getRequests();
+      setRequests(data);
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : 'ไม่สามารถโหลดข้อมูลคำร้องได้',
+      );
+    }
   }
 
-  function handleDelete(requestId) {
-    setRequests((current) =>
-      current.filter((request) => request.id !== requestId)
-    );
+  loadRequests();
+}, []);
 
-    setNotice(`ลบคำร้อง ${requestId} จาก memory แล้ว`);
+  async function handleReset() {
+    const nextRequests = await resetRequests();
+    setRequests(nextRequests);
+    setStatusFilter('all');
+    setNotice('คืนค่าข้อมูลตัวอย่างเริ่มต้นแล้ว');
   }
 
   return (
@@ -56,6 +75,14 @@ function DashboardPage() {
           <h1>Campus Service Request</h1>
           <p>รายการคำร้องบริการภายในมหาวิทยาลัย</p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          data-testid="reset-button"
+        >
+          รีเซ็ตข้อมูล
+        </button>
       </div>
 
       {notice && (
@@ -74,16 +101,21 @@ function DashboardPage() {
         <section className="panel" aria-labelledby="request-list-title">
           <div className="section-heading">
             <h2 id="request-list-title">รายการคำร้อง</h2>
+
             <FilterBar
               value={statusFilter}
               onFilterChange={setStatusFilter}
             />
           </div>
 
-          <RequestList
-            requests={filteredRequests}
-            onDeleteRequest={handleDelete}
-          />
+          {filteredRequests.length === 0 ? (
+            <p data-testid="empty-state">ไม่พบรายการคำร้อง</p>
+          ) : (
+            <RequestList
+              requests={filteredRequests}
+              onDeleteRequest={handleDelete}
+            />
+          )}
         </section>
       </div>
     </section>

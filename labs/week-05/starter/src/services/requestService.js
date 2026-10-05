@@ -1,3 +1,8 @@
+import {
+  clearStoredRequests,
+  readStoredRequests,
+  writeStoredRequests,
+} from './requestStorage.js';
 /**
  * requestService.js — ชั้นเข้าถึงข้อมูล
  *
@@ -12,8 +17,6 @@
  */
 
 // TODO 5B-1: เปิดใช้บรรทัดล่างนี้เมื่อถึงคาบ 5B
-// import { clearStoredRequests, readStoredRequests, writeStoredRequests } from './requestStorage.js';
-
 const LAB_DELAY_MS = 420;
 
 /* ─────────── ให้มาแล้ว ไม่ต้องแก้ ─────────── */
@@ -47,7 +50,15 @@ async function waitForLabDelay() {
  * ถ้าคืนตัวเดิมไปตรง ๆ แล้วมีคนแก้ ข้อมูลต้นทางจะเปลี่ยนตามโดยไม่ตั้งใจ
  */
 async function fetchSeedRequests() {
-  throw new Error('TODO 5A-1: fetchSeedRequests');
+  const baseUrl = import.meta.env?.BASE_URL ?? '/';
+  const response = await fetch(`${baseUrl}data/initialRequests.json`);
+
+  if (!response.ok) {
+    throw new Error('ไม่สามารถโหลดข้อมูลคำร้องได้');
+  }
+
+  const data = await response.json();
+  return structuredClone(data);
 }
 
 /**
@@ -61,17 +72,15 @@ async function fetchSeedRequests() {
 export async function getRequests(options = {}) {
   await waitForLabDelay();
 
-  if (options.scenario === 'error') {
+  if (options?.scenario === 'error') {
     throw new Error('LAB scenario: จำลองการโหลดข้อมูลไม่สำเร็จ');
   }
-  if (options.scenario === 'empty') {
+
+  if (options?.scenario === 'empty') {
     return [];
   }
 
-  // TODO 5A-2: return fetchSeedRequests();
-  // TODO 5B-3: เปลี่ยนบรรทัดข้างบนเป็น return loadNormalRequests(options.onRecovery);
-  throw new Error('TODO 5A-2: getRequests normal flow');
-}
+  return loadNormalRequests(options?.onRecovery);}
 
 /**
  * TODO 5A-3 · หาคำร้องใบเดียวตามรหัส
@@ -81,8 +90,8 @@ export async function getRequests(options = {}) {
  * เพราะ "หาไม่เจอ" ไม่ใช่ความผิดพลาดของระบบ
  */
 export async function getRequestById(requestId) {
-  void requestId;
-  throw new Error('TODO 5A-3: getRequestById');
+  const requests = await getRequests();
+  return requests.find((request) => request.id === requestId) ?? null;
 }
 
 /* ─────────── คาบ 5B ─────────── */
@@ -97,9 +106,23 @@ export async function getRequestById(requestId) {
  *   4. ถ้า status เป็น 'invalid' ให้เรียก onRecovery?.(ข้อความ) เพื่อให้หน้าจอแจ้งผู้ใช้
  *   5. คืนข้อมูล seed
  */
-// async function loadNormalRequests(onRecovery) {
-//   throw new Error('TODO 5B-2: loadNormalRequests');
-// }
+async function loadNormalRequests(onRecovery) {
+  const stored = readStoredRequests();
+
+  if (stored.status === 'valid') {
+    return stored.requests;
+  }
+
+  const seed = await fetchSeedRequests();
+
+  if (stored.status === 'invalid') {
+    onRecovery?.('ข้อมูลเดิมเสียหาย ระบบได้กู้คืนข้อมูลเริ่มต้นแล้ว');
+  }
+
+  writeStoredRequests(seed);
+
+  return seed;
+}
 
 /**
  * TODO 5B-4 · เพิ่มคำร้องใหม่
@@ -112,17 +135,52 @@ export async function getRequestById(requestId) {
  *   5. persist แล้วคืน object ใหม่
  */
 export async function addRequest(requestInput) {
-  void requestInput;
-  throw new Error('TODO 5B-4: addRequest');
-}
+  const requests = await getRequests();
 
+  const requesterName = requestInput?.requesterName?.trim();
+  const requestType = requestInput?.requestType?.trim();
+  const location = requestInput?.location?.trim();
+  const details = requestInput?.details?.trim();
+  const priority = requestInput?.priority;
+
+  if (
+    !requesterName ||
+    requesterName.length < 2 ||
+    !requestType ||
+    !location ||
+    !details ||
+    details.length < 10 ||
+    !['normal', 'urgent'].includes(priority)
+  ) {
+    throw new Error('ข้อมูลคำร้องไม่ครบหรือไม่ถูกต้อง');
+  }
+
+  const newRequest = {
+    id: `REQ-${Date.now()}`,
+    requesterName,
+    requestType,
+    location,
+    details,
+    priority,
+    status: 'pending',
+  };
+
+  const nextRequests = [...requests, newRequest];
+  writeStoredRequests(nextRequests);
+
+  return structuredClone(newRequest);
+}
 /**
  * TODO 5B-5 · ลบคำร้องตามรหัส
  * ใช้ .filter() สร้าง array ใหม่ อย่าแก้ array เดิม แล้ว persist
  */
 export async function deleteRequest(requestId) {
-  void requestId;
-  throw new Error('TODO 5B-5: deleteRequest');
+  const requests = await getRequests();
+  const nextRequests = requests.filter((request) => request.id !== requestId);
+
+  writeStoredRequests(nextRequests);
+
+  return structuredClone(nextRequests);
 }
 
 /**
@@ -130,5 +188,10 @@ export async function deleteRequest(requestId) {
  * ล้างคีย์ของ LAB05 แล้วโหลด seed ใหม่ทับ
  */
 export async function resetRequests() {
-  throw new Error('TODO 5B-6: resetRequests');
+  clearStoredRequests();
+
+  const seed = await fetchSeedRequests();
+  writeStoredRequests(seed);
+
+  return structuredClone(seed);
 }
