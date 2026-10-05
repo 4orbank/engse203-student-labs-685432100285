@@ -1,0 +1,11 @@
+{
+  "week": "week-06",
+  "title": "RESTful API ด้วย Express — CRUD, middleware, error handling",
+  "status": "submitted",
+  "originalRepoUrl": "",
+  "originalCommit": "dfc1a77",
+  "pullRequestUrl": "",
+  "submissionTag": "lab-06-submission-v1",
+  "testStatus": "pass",
+  "notes": "Express API Foundation — CRUD, middleware, error handling และ persistence"
+}
