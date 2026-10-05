@@ -1,4 +1,4 @@
-name: Deploy LAB05 to GitHub Pages
+name: Deploy Student Labs to GitHub Pages
 
 on:
   push:
@@ -28,12 +28,10 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        working-directory: labs/week-05/source
         run: npm ci
 
-      - name: Build
-        working-directory: labs/week-05/source
-        run: npm run build
+      - name: Build Pages
+        run: npm run build:pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -41,7 +39,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: labs/week-05/source/dist
+          path: docs
 
   deploy:
     needs: build
