@@ -10,7 +10,7 @@
  * ⚠ ตัวแปรของ Vite ต้องขึ้นต้นด้วย VITE_ เท่านั้น
  *   ถ้าตั้งชื่อว่า API_BASE_URL เฉย ๆ จะได้ undefined
  */
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:3001';
 
 /** error ที่รู้ว่ามาจาก API พร้อม status ที่ได้กลับมา — ให้มาแล้ว */
 export class ApiError extends Error {
