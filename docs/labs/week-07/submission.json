@@ -1,0 +1,15 @@
+{
+  "week": "week-07",
+  "title": "RESTful API Integration — Express, Frontend และ Error Handling",
+  "status": "submitted",
+  "originalRepoUrl": "",
+  "originalCommit": "",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/6",
+  "submissionTag": "lab-07-submission-v1",
+  "testStatus": "pass",
+  "notes": "เชื่อมต่อ Frontend กับ REST API พร้อมจัดการ Error และตรวจสอบผลการทดสอบ",
+  "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-07/",
+  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-07/labs/week-07/source",
+  "hasPublish": false,
+  "sourceEntries": 0
+}
