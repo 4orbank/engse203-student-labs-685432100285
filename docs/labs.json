@@ -103,5 +103,20 @@
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-07/labs/week-07/source",
     "hasPublish": false,
     "sourceEntries": 0
+  },
+  {
+    "week": "week-09",
+    "title": "SQL Fundamentals — Relational Database and SQLite",
+    "status": "submitted",
+    "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-09-sql-fundamentals",
+    "originalCommit": "250ae74",
+    "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/7",
+    "submissionTag": "lab-09-submission-v1",
+    "testStatus": "pass",
+    "notes": "ออกแบบฐานข้อมูลเชิงสัมพันธ์ ใช้ SQL และ SQLite พร้อมตรวจสอบผลการทดสอบผ่าน 30/30",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-09/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-09/labs/week-09/source",
+    "hasPublish": false,
+    "sourceEntries": 0
   }
 ]
