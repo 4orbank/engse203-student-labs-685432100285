@@ -1,0 +1,11 @@
+{
+  "week": "week-09",
+  "title": "SQL Fundamentals — Relational Database and SQLite",
+  "status": "in-progress",
+  "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-09-sql-fundamentals",
+  "originalCommit": "",
+  "pullRequestUrl": "",
+  "submissionTag": "",
+  "testStatus": "pending",
+  "notes": "ฝึกออกแบบฐานข้อมูลเชิงสัมพันธ์และใช้ SQL สำหรับ CREATE TABLE, CRUD และ JOIN"
+}
