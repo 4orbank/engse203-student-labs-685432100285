@@ -1,28 +1,24 @@
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-/**
- * Week 10 — เปลี่ยน service จากอ่านไฟล์ JSON เป็นฐานข้อมูล SQLite
- *
- * ตอนนี้ยังเป็นเวอร์ชัน Week 07 (อ่านไฟล์ JSON) อยู่
- * งานของสัปดาห์นี้คือเปลี่ยนให้ใช้ node:sqlite
- *
- * ⚠ กฎเหล็ก: signature ของทุกฟังก์ชันต้องเหมือนเดิมทุกตัว
- *   → controller และ frontend จะได้ไม่ต้องแก้เลย
- */
+import { AppError } from '../middleware/errorHandler.js';
 
-// ── ของเดิม Week 07 (อ่านไฟล์ JSON) — จะถูกแทนที่ ──
+// Week 10 — SQLite Request Service
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const API_ROOT = path.resolve(HERE, '../..');
-const DB_FILE = path.join(API_ROOT, 'data', 'campus.db');
+
+const DB_FILE =
+  process.env.DB_FILE ?? path.join(API_ROOT, 'data', 'campus.db');
+
 const SCHEMA_FILE = path.join(API_ROOT, 'data', 'schema.sql');
 
 let db;
 
+// CP26–CP27: เปิดฐานข้อมูล SQLite
 export async function loadSeed() {
   db = new DatabaseSync(DB_FILE);
-
   db.exec('PRAGMA foreign_keys = ON');
 
   const table = db.prepare(`
@@ -35,40 +31,166 @@ export async function loadSeed() {
     const schema = readFileSync(SCHEMA_FILE, 'utf8');
     db.exec(schema);
   }
+
+  // Challenge: สร้าง INDEX แม้ฐานข้อมูลมีตารางอยู่แล้ว
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_requests_status
+    ON requests(status)
+  `);
 }
 
+// SQL สำหรับคืนข้อมูลให้ตรงกับ Frontend
+const SELECT_REQUESTS = `
+  SELECT
+    r.id,
+    u.name AS requesterName,
+    r.request_type AS requestType,
+    r.location,
+    r.details,
+    r.priority,
+    r.status
+  FROM requests r
+  JOIN users u ON r.requester_id = u.id
+`;
+
+// CP28: อ่านคำร้องทั้งหมดและกรองสถานะ
 export function findAll({ status } = {}) {
-  /**
-   * TODO W10-3 (CP28) · เปลี่ยนเป็น SELECT จากฐานข้อมูล
-   *   - ใช้ JOIN กับตาราง users เพื่อคืน requesterName (ไม่ใช่ requester_id)
-   *   - ตั้งชื่อคอลัมน์ด้วย AS ให้ตรงกับที่ frontend ใช้
-   *   - ถ้ามี status ให้เติม WHERE r.status = ?
-   *   คำใบ้: คัดลอก query จาก queries.sql ที่ทำสัปดาห์ที่แล้วมาปรับ
-   */
-  return status ? requests.filter((r) => r.status === status) : requests;
+  if (status) {
+    return db.prepare(
+      SELECT_REQUESTS + ' WHERE r.status = ? ORDER BY r.id'
+    ).all(status);
+  }
+
+  return db.prepare(
+    SELECT_REQUESTS + ' ORDER BY r.id'
+  ).all();
 }
 
+// CP28: ค้นหาคำร้องจาก ID
 export function findById(id) {
-  /** TODO W10-4 (CP28) · SELECT ... WHERE r.id = ?  · ไม่พบให้คืน null */
-  return requests.find((r) => r.id === id) ?? null;
+  return db.prepare(
+    SELECT_REQUESTS + ' WHERE r.id = ?'
+  ).get(id) ?? null;
 }
 
+// CP29: แปลงชื่อผู้แจ้งเป็น User ID
+function resolveUserId(name) {
+  const found = db.prepare(`
+    SELECT id FROM users WHERE name = ?
+  `).get(name);
+
+  if (found) {
+    return found.id;
+  }
+
+  const email = `user-${randomUUID()}@rmutl.ac.th`;
+
+  const result = db.prepare(`
+    INSERT INTO users (name, department, email)
+    VALUES (?, ?, ?)
+  `).run(name, 'ไม่ระบุ', email);
+
+  return result.lastInsertRowid;
+}
+
+// CP32: แปลง SQLite Error เป็น HTTP Error
+function toAppError(err) {
+  const message = err.message ?? '';
+
+  if (message.includes('FOREIGN KEY constraint failed')) {
+    return new AppError('อ้างถึงข้อมูลที่ไม่มีอยู่จริง', 400);
+  }
+
+  if (message.includes('CHECK constraint failed')) {
+    return new AppError('ค่าที่ส่งมาไม่อยู่ในรายการที่กำหนด', 400);
+  }
+
+  if (message.includes('UNIQUE constraint failed')) {
+    return new AppError('ข้อมูลนี้มีอยู่แล้วในระบบ', 409);
+  }
+
+  if (message.includes('NOT NULL constraint failed')) {
+    return new AppError('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 400);
+  }
+
+  return err;
+}
+
+// CP29: เพิ่มคำร้องใหม่ลง SQLite
 export function create(input) {
-  /**
-   * TODO W10-5 (CP29) · INSERT ลงฐานข้อมูล
-   *   ⚠ frontend ส่ง requesterName (ชื่อ) มา แต่ตารางเก็บ requester_id (ตัวเลข)
-   *   → ต้องหา id ของชื่อนั้นก่อน ถ้ายังไม่มีในระบบให้สร้าง user ใหม่
-   *   นี่คือ "หน้าที่ของ service" ที่พูดถึงในบทที่ 9 ของสัปดาห์ที่แล้ว
-   */
-  throw new Error('TODO W10-5: create');
+  db.exec('BEGIN IMMEDIATE');
+
+  try {
+    const requesterId = resolveUserId(input.requesterName);
+    const id = `REQ-${randomUUID().toUpperCase()}`;
+
+    db.prepare(`
+      INSERT INTO requests (
+        id,
+        requester_id,
+        request_type,
+        location,
+        details,
+        priority,
+        status
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      requesterId,
+      input.requestType,
+      input.location,
+      input.details,
+      input.priority ?? 'normal',
+      'pending'
+    );
+
+    db.exec('COMMIT');
+    return findById(id);
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw toAppError(error);
+  }
 }
 
+// CP30: อัปเดตสถานะคำร้อง
 export function updateStatus(id, status) {
-  /** TODO W10-6 (CP30) · UPDATE requests SET status = ? WHERE id = ? · ไม่พบคืน null */
-  throw new Error('TODO W10-6: updateStatus');
+  const result = db.prepare(`
+    UPDATE requests
+    SET status = ?
+    WHERE id = ?
+  `).run(status, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return findById(id);
 }
 
+// CP30: ลบคำร้อง
 export function remove(id) {
-  /** TODO W10-7 (CP30) · DELETE FROM requests WHERE id = ? · ไม่พบคืน null */
-  throw new Error('TODO W10-7: remove');
+  const result = db.prepare(`
+    DELETE FROM requests
+    WHERE id = ?
+  `).run(id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+    return true;
+}
+
+// Challenge: อ่านรายชื่อผู้ใช้ทั้งหมดจาก SQLite
+export function findUsers() {
+  return db.prepare(`
+    SELECT
+      id,
+      name,
+      department,
+      email
+    FROM users
+    ORDER BY id
+  `).all();
 }

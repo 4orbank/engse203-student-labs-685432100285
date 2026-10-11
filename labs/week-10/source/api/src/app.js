@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import { config } from './config.js';
 import requestRoutes from './routes/requestRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import userRoutes from './routes/userRoutes.js';
 
 export function createApp() {
   const app = express();
@@ -22,6 +23,7 @@ export function createApp() {
     res.json({ message: 'Campus Service API is running', version: '2.0.0' });
   });
   app.use('/api/requests', requestRoutes);
+  app.use('/api/users', userRoutes);
 
   // ⑤ ปิดท้าย
   app.use(notFound);

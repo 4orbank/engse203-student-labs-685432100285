@@ -25,6 +25,67 @@
 
 ---
 
+## Data Model — SQLite Database
+
+ระบบจัดเก็บข้อมูลด้วย SQLite ในไฟล์ `api/data/campus.db`
+โดยใช้ `node:sqlite` เชื่อมต่อฐานข้อมูล
+
+### ตาราง users
+
+| Column | Type | Description |
+|---|---|---|
+| id | INTEGER | Primary Key |
+| name | TEXT | ชื่อผู้แจ้ง |
+| department | TEXT | หน่วยงาน |
+| email | TEXT | อีเมลที่ไม่ซ้ำกัน (UNIQUE) |
+
+### ตาราง requests
+
+| Column | Type | Description |
+|---|---|---|
+| id | TEXT | Primary Key |
+| requester_id | INTEGER | Foreign Key อ้างอิง users.id |
+| request_type | TEXT | ประเภทคำร้อง |
+| location | TEXT | สถานที่ |
+| details | TEXT | รายละเอียด |
+| priority | TEXT | low, normal, urgent |
+| status | TEXT | pending, in-progress, completed |
+| created_at | TEXT | วันที่สร้างคำร้อง |
+
+### Relationship
+
+users (1) ---- (N) requests
+
+หนึ่งผู้ใช้สามารถสร้างคำร้องได้หลายรายการ
+
+Foreign Key:
+`requests.requester_id` → `users.id`
+
+### API Data Mapping
+
+ฐานข้อมูลใช้ชื่อคอลัมน์แบบ snake_case
+แต่ API ส่งข้อมูลแบบ camelCase เพื่อให้ Frontend ใช้งานได้
+
+| Database | API Response |
+|---|---|
+| users.name | requesterName |
+| requests.request_type | requestType |
+| requests.requester_id | ไม่ส่งโดยตรง |
+
+Service ใช้ SQL JOIN ระหว่าง users และ requests
+เพื่อส่งชื่อผู้แจ้งกลับไปแทน requester_id
+
+### Database Error Handling
+
+- SQLite CHECK / FOREIGN KEY / NOT NULL constraint → HTTP 400
+- SQLite UNIQUE constraint → HTTP 409
+- Internal database errors → HTTP 500
+
+Service ใช้ Parameterized Queries (`?`) เพื่อป้องกัน
+SQL Injection และใช้ Transaction สำหรับการเพิ่มคำร้องใหม่
+
+---
+
 ## Endpoints
 
 | Method | Endpoint | คำอธิบาย | Request body | สำเร็จ | ผิดพลาด |
