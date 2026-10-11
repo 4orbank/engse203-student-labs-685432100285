@@ -9,7 +9,7 @@
   "testStatus": "pass",
   "notes": "เชื่อมต่อ Frontend กับ REST API พร้อมจัดการ Error และตรวจสอบผลการทดสอบ",
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-07/",
-  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-07/labs/week-07/source",
+  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-07/source",
   "hasPublish": false,
   "sourceEntries": 6
 }
