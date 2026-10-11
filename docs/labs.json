@@ -10,7 +10,7 @@
     "testStatus": "pass",
     "notes": "LAB 01 ไม่มี repository เดิมแยกต่างหาก จึงใช้อ้างอิง baseline จาก repository รวม ทดสอบ hello.js และตรวจ Node.js, npm และ Git แล้ว",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-01/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-01/labs/week-01/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-01/source",
     "hasPublish": false,
     "sourceEntries": 2
   },
@@ -25,7 +25,7 @@
     "testStatus": "pass",
     "notes": "ติดตั้ง dependencies และ Vite build ผ่านแล้ว นำ build output ที่มี index.html เข้า publish/",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-02/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-02/labs/week-02/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-02/source",
     "hasPublish": true,
     "sourceEntries": 8
   },
@@ -40,7 +40,7 @@
     "testStatus": "pass",
     "notes": "npm check และ build ผ่าน ทดสอบ Desktop, Mobile 375px, validation, live preview, submit interaction และ Console แล้ว",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-03/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-03/labs/week-03/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-03/source",
     "hasPublish": true,
     "sourceEntries": 7
   },
@@ -55,7 +55,7 @@
     "testStatus": "pass",
     "notes": "",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-04/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-04/labs/week-04/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-04/source",
     "hasPublish": true,
     "sourceEntries": 12
   },
@@ -70,7 +70,7 @@
     "testStatus": "pass",
     "notes": "",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-05/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-05/labs/week-05/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-05/source",
     "hasPublish": true,
     "sourceEntries": 10
   },
@@ -85,7 +85,7 @@
     "testStatus": "pass",
     "notes": "Express API Foundation — CRUD, middleware, error handling และ persistence",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-06/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-06/labs/week-06/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-06/source",
     "hasPublish": false,
     "sourceEntries": 8
   },
@@ -100,7 +100,7 @@
     "testStatus": "pass",
     "notes": "เชื่อมต่อ Frontend กับ REST API พร้อมจัดการ Error และตรวจสอบผลการทดสอบ",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-07/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-07/labs/week-07/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-07/source",
     "hasPublish": false,
     "sourceEntries": 6
   },
@@ -115,9 +115,9 @@
     "testStatus": "pass",
     "notes": "งานสอบกลางภาค Part B ที่ผู้เรียนแจ้งว่าส่งแล้ว นำสำเนามาเก็บใน ENGSE203 student labs; ตรวจพบเฉพาะ branch main ใน repository ต้นฉบับ และยังไม่ได้รันทดสอบซ้ำใน repository นี้",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-08/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-08/labs/week-08/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-08/source",
     "hasPublish": false,
-    "sourceEntries": 14
+    "sourceEntries": 13
   },
   {
     "week": "week-09",
@@ -130,8 +130,23 @@
     "testStatus": "pass",
     "notes": "ออกแบบฐานข้อมูลเชิงสัมพันธ์ ใช้ SQL และ SQLite พร้อมตรวจสอบผลการทดสอบผ่าน 30/30",
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-09/",
-    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-09/labs/week-09/source",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-09/source",
     "hasPublish": false,
     "sourceEntries": 6
+  },
+  {
+    "week": "week-10",
+    "title": "Node.js + SQLite — Database Integration",
+    "status": "submitted",
+    "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-10-node-database",
+    "originalCommit": "",
+    "pullRequestUrl": "",
+    "submissionTag": "lab-10-submission-v1",
+    "testStatus": "pass",
+    "notes": "เชื่อมต่อ Campus Service API กับ SQLite ด้วย node:sqlite รองรับ CRUD, JOIN, SQL Injection Protection, Transaction และ INDEX ผ่าน Week 10 Checker 31/31, Week 7 Regression 36/36 และ Automated Tests 7/7",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-10/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-10/source",
+    "hasPublish": false,
+    "sourceEntries": 5
   }
 ]
