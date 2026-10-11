@@ -148,5 +148,20 @@
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-10/source",
     "hasPublish": false,
     "sourceEntries": 5
+  },
+  {
+    "week": "week-11",
+    "title": "Fullstack Integration + Production Build",
+    "status": "submitted",
+    "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-11-fullstack-integration",
+    "originalCommit": "",
+    "pullRequestUrl": "",
+    "submissionTag": "lab-11-submission-v1",
+    "testStatus": "pass",
+    "notes": "เชื่อมต่อ Fullstack Campus Service API กับ React Frontend เพิ่ม Environment Configuration, Health Check, Error Handling, Production Build ผ่าน Week 11 Checker 17/17, Week 10 Regression 31/31 และ Week 7 Regression 36/36",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-11/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-11/source",
+    "hasPublish": false,
+    "sourceEntries": 6
   }
 ]
