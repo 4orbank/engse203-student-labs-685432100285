@@ -1,7 +1,7 @@
 {
   "week": "week-06",
   "title": "RESTful API ด้วย Express — CRUD, middleware, error handling",
-  "status": "submitted",
+  "status": "ready",
   "originalRepoUrl": "",
   "originalCommit": "dfc1a77",
   "pullRequestUrl": "",
@@ -11,5 +11,5 @@
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-06/",
   "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-06/labs/week-06/source",
   "hasPublish": false,
-  "sourceEntries": 0
+  "sourceEntries": 8
 }

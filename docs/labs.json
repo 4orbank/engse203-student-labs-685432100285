@@ -72,12 +72,12 @@
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-05/",
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-05/labs/week-05/source",
     "hasPublish": true,
-    "sourceEntries": 0
+    "sourceEntries": 10
   },
   {
     "week": "week-06",
     "title": "RESTful API ด้วย Express — CRUD, middleware, error handling",
-    "status": "submitted",
+    "status": "ready",
     "originalRepoUrl": "",
     "originalCommit": "dfc1a77",
     "pullRequestUrl": "",
@@ -87,7 +87,7 @@
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-06/",
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-06/labs/week-06/source",
     "hasPublish": false,
-    "sourceEntries": 0
+    "sourceEntries": 8
   },
   {
     "week": "week-07",
@@ -102,6 +102,36 @@
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-07/",
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-07/labs/week-07/source",
     "hasPublish": false,
-    "sourceEntries": 0
+    "sourceEntries": 6
+  },
+  {
+    "week": "week-08",
+    "title": "ENGSE203 Midterm Practical Exam Part B",
+    "status": "ready",
+    "originalRepoUrl": "https://github.com/4orbank/Midturm",
+    "originalCommit": "ed80dfd6e77b56945497118dc88d0925d69bb51b",
+    "pullRequestUrl": "",
+    "submissionTag": "",
+    "testStatus": "pass",
+    "notes": "งานสอบกลางภาค Part B ที่ผู้เรียนแจ้งว่าส่งแล้ว นำสำเนามาเก็บใน ENGSE203 student labs; ตรวจพบเฉพาะ branch main ใน repository ต้นฉบับ และยังไม่ได้รันทดสอบซ้ำใน repository นี้",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-08/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-08/labs/week-08/source",
+    "hasPublish": false,
+    "sourceEntries": 14
+  },
+  {
+    "week": "week-09",
+    "title": "SQL Fundamentals — Relational Database and SQLite",
+    "status": "submitted",
+    "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-09-sql-fundamentals",
+    "originalCommit": "250ae74",
+    "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/7",
+    "submissionTag": "lab-09-submission-v1",
+    "testStatus": "pass",
+    "notes": "ออกแบบฐานข้อมูลเชิงสัมพันธ์ ใช้ SQL และ SQLite พร้อมตรวจสอบผลการทดสอบผ่าน 30/30",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-09/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-09/labs/week-09/source",
+    "hasPublish": false,
+    "sourceEntries": 6
   }
 ]
