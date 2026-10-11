@@ -1,10 +1,15 @@
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { AppError } from '../middleware/errorHandler.js';
 import { config } from '../config.js';
 
+
 // Week 11 — SQLite Request Service
+// ตำแหน่งฐานข้อมูลใช้ config.dbFile ซึ่งคำนวณจาก
+// import.meta.url ผ่าน fileURLToPath() ใน config.js
+// เพื่อให้ path ถูกต้องไม่ว่าจะรันโปรแกรมจากโฟลเดอร์ใด
 let db;
 
 // CP26–CP27: เปิดฐานข้อมูล SQLite
@@ -185,4 +190,31 @@ export function findUsers() {
     FROM users
     ORDER BY id
   `).all();
+}
+
+// CP37 — ตรวจสอบความพร้อมของฐานข้อมูล SQLite
+export function getDbStatus() {
+  try {
+    if (!db) {
+      return {
+        connected: false,
+        reason: 'ยังไม่ได้เปิดฐานข้อมูล',
+      };
+    }
+
+    const n = db.prepare(
+      "SELECT COUNT(*) AS c FROM sqlite_master WHERE type = 'table'"
+    ).get().c;
+
+    return {
+      connected: true,
+      driver: 'sqlite',
+      tables: n,
+    };
+  } catch (error) {
+    return {
+      connected: false,
+      reason: error.message,
+    };
+  }
 }
