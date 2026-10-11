@@ -1,0 +1,15 @@
+{
+  "week": "week-08",
+  "title": "ENGSE203 Midterm Practical Exam Part B",
+  "status": "ready",
+  "originalRepoUrl": "https://github.com/4orbank/Midturm",
+  "originalCommit": "ed80dfd6e77b56945497118dc88d0925d69bb51b",
+  "pullRequestUrl": "",
+  "submissionTag": "",
+  "testStatus": "pass",
+  "notes": "งานสอบกลางภาค Part B ที่ผู้เรียนแจ้งว่าส่งแล้ว นำสำเนามาเก็บใน ENGSE203 student labs; ตรวจพบเฉพาะ branch main ใน repository ต้นฉบับ และยังไม่ได้รันทดสอบซ้ำใน repository นี้",
+  "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-08/",
+  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-08/labs/week-08/source",
+  "hasPublish": false,
+  "sourceEntries": 14
+}
