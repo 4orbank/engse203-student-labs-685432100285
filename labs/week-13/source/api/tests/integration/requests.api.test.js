@@ -1,3 +1,4 @@
+import { loginAsStaff } from '../helpers/auth.js';
 import { describe, test, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
@@ -66,38 +67,76 @@ describe('POST /api/requests', () => {
   });
   // 🐞 regression test — BUG #1: ลบแล้วเพิ่มใหม่ ได้ 500 (รหัสซ้ำ)
   test('ลบรายการกลาง แล้วเพิ่มใหม่ → 201 และรหัสไม่ซ้ำของเดิม', async () => {
-    await request(app).delete('/api/requests/REQ-002').expect(204);
+    const token = await loginAsStaff(app);
+
+    await request(app)
+      .delete('/api/requests/REQ-002')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
+
     const r = await request(app).post('/api/requests').send(valid);
     expect(r.status).toBe(201);
+
     const ids = (await request(app).get('/api/requests')).body.map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
 describe('PUT /api/requests/:id', () => {
-  test('เปลี่ยนสถานะ → 200 และค่าใหม่ถูกบันทึก', async () => {
-    const r = await request(app).put('/api/requests/REQ-001').send({ status: 'completed' });
+    test('เปลี่ยนสถานะ → 200 และค่าใหม่ถูกบันทึก', async () => {
+    const token = await loginAsStaff(app);
+
+    const r = await request(app)
+      .put('/api/requests/REQ-001')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' });
+
     expect(r.status).toBe(200);
     expect(r.body.status).toBe('completed');
   });
   test('สถานะนอกรายการ → 400', async () => {
-    const r = await request(app).put('/api/requests/REQ-001').send({ status: 'done' });
-    expect(r.status).toBe(400);
-  });
+  const token = await loginAsStaff(app);
+
+  const r = await request(app)
+    .put('/api/requests/REQ-001')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ status: 'done' });
+
+  expect(r.status).toBe(400);
+});
   // 🐞 regression test — BUG #3: เปลี่ยนสถานะคำร้องที่ไม่มีอยู่ ได้ 500
-  test('คำร้องที่ไม่มีอยู่ → 404 (ไม่ใช่ 500)', async () => {
-    const r = await request(app).put('/api/requests/REQ-999').send({ status: 'completed' });
+    test('คำร้องที่ไม่มีอยู่ → 404 (ไม่ใช่ 500)', async () => {
+    const token = await loginAsStaff(app);
+
+    const r = await request(app)
+      .put('/api/requests/REQ-999')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' });
+
     expect(r.status).toBe(404);
   });
 });
 
 describe('DELETE /api/requests/:id', () => {
-  test('ลบแล้ว GET ซ้ำ → 404', async () => {
-    await request(app).delete('/api/requests/REQ-003').expect(204);
-    await request(app).get('/api/requests/REQ-003').expect(404);
+    test('ลบแล้ว GET ซ้ำ → 404', async () => {
+    const token = await loginAsStaff(app);
+
+    await request(app)
+      .delete('/api/requests/REQ-003')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(204);
+
+    await request(app)
+      .get('/api/requests/REQ-003')
+      .expect(404);
   });
-  test('ลบรายการที่ไม่มี → 404', async () => {
-    await request(app).delete('/api/requests/REQ-999').expect(404);
+    test('ลบรายการที่ไม่มี → 404', async () => {
+    const token = await loginAsStaff(app);
+
+    await request(app)
+      .delete('/api/requests/REQ-999')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });
 
@@ -130,6 +169,7 @@ describe('ข้อมูลผิดรูปแบบและ endpoint ผู
     expect(r.status).toBe(400);
     expect(r.body).toHaveProperty('error');
   });
+
   test('GET /api/users/1/requests → คำร้องของผู้ใช้คนนั้น', async () => {
     const r = await request(app).get('/api/users/1/requests');
     expect(r.status).toBe(200);

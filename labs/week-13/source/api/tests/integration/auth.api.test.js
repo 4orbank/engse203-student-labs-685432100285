@@ -27,14 +27,54 @@ describe('POST /api/auth/login', () => {
 
 describe('สิทธิ์ของ PUT / DELETE', () => {
   test('ไม่มี token → 401', async () => {
-    const r = await request(app).put('/api/requests/REQ-001').send({ status: 'completed' });
+    const r = await request(app)
+      .put('/api/requests/REQ-001')
+      .send({ status: 'completed' });
+
     expect(r.status).toBe(401);
   });
 
-  // 🏫 TODO W13-AUTH (CP51): เพิ่ม
-  //   - token ที่ไม่ใช่เจ้าหน้าที่ → 403      ใช้ tokenFor('requester')
-  //   - token ปลอม (secret อื่น) → 401        ใช้ tokenFor('staff', 'not-the-real-secret')
-  //   - เจ้าหน้าที่ → PUT 200 และ DELETE 204  ใช้ await loginAsStaff(app)
-  //   ⚠ หลังผูก authenticate แล้ว test ของ PUT/DELETE ใน requests.api.test.js จะพัง (401)
-  //     — นั่นคือสัญญาณว่า requirement เปลี่ยน: แก้ test ให้เข้าสู่ระบบก่อน
+    test('เจ้าหน้าที่มีสิทธิ์ PUT → 200', async () => {
+    const token = await loginAsStaff(app);
+
+    const r = await request(app)
+      .put('/api/requests/REQ-001')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' });
+
+    expect(r.status).toBe(200);
+  });
+
+  test('token ของผู้แจ้งทั่วไป → 403', async () => {
+    const token = tokenFor('requester');
+
+    const r = await request(app)
+      .put('/api/requests/REQ-001')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' });
+
+    expect(r.status).toBe(403);
+    expect(r.body.error).toBe('ไม่มีสิทธิ์ทำรายการนี้');
+  });
+
+  test('token ปลอม → 401', async () => {
+    const token = tokenFor('staff', 'not-the-real-secret');
+
+    const r = await request(app)
+      .put('/api/requests/REQ-001')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'completed' });
+
+    expect(r.status).toBe(401);
+    expect(r.body.error).toBe('ต้องเข้าสู่ระบบก่อน');
+  });
+    test('เจ้าหน้าที่มีสิทธิ์ DELETE → 204', async () => {
+    const token = await loginAsStaff(app);
+
+    const r = await request(app)
+      .delete('/api/requests/REQ-003')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(r.status).toBe(204);
+  });
 });

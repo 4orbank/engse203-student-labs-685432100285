@@ -1,3 +1,4 @@
+import authRoutes from './routes/authRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -11,6 +12,11 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 export function createApp() {
   const app = express();
+    // Challenge 1: ป้องกัน browser เดาประเภทไฟล์เอง (MIME sniffing)
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+  });
 
   // ① CORS — dev ใช้ (frontend 5173 เรียก API 3001 ข้ามพอร์ต)
   //    production ไม่จำเป็น เพราะเว็บกับ API อยู่ origin เดียวกัน แต่ใส่ไว้ไม่เสียหาย
@@ -29,7 +35,7 @@ export function createApp() {
     res.json({ message: 'Campus Service API is running', version: '3.0.0' });
   });
   app.use('/api/health', healthRoutes);
-  // 🏫 TODO W13-LOGIN (CP50): import authRoutes แล้วผูกที่ /api/auth
+  app.use('/api/auth', authRoutes);
   app.use('/api/requests', requestRoutes);
   app.use('/api/users', userRoutes);
 
