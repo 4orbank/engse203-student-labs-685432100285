@@ -2,14 +2,15 @@
   "week": "week-10",
   "title": "Node.js + SQLite — Database Integration",
   "status": "submitted",
-  "originalRepoUrl": "https://github.com/se-rmutl/engse203-lab/tree/main/labs/week-10-node-database",
+  "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs",
   "originalCommit": "",
-  "pullRequestUrl": "",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/13",
   "submissionTag": "lab-10-submission-v1",
   "testStatus": "pass",
   "notes": "เชื่อมต่อ Campus Service API กับ SQLite ด้วย node:sqlite รองรับ CRUD, JOIN, SQL Injection Protection, Transaction และ INDEX ผ่าน Week 10 Checker 31/31, Week 7 Regression 36/36 และ Automated Tests 7/7",
+  "originalSource": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-10",
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-10/",
-  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-10/source",
+  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-10",
   "hasPublish": false,
   "sourceEntries": 5
 }
