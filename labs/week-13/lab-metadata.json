@@ -1,0 +1,13 @@
+{
+  "week": "week-13",
+  "title": "Authentication, Authorization & Security",
+  "status": "submitted",
+  "sourceOrigin": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-13/source",
+  "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285",
+  "originalCommit": "f2b7e94",
+  "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/12",
+  "submissionTag": "lab-13-submission-v1",
+  "testStatus": "pass",
+  "notes": "Week 13 Security: Request Validation, Password Hashing, JWT Authentication, Role-Based Authorization, Error Handling และ Security Testing ผ่าน Checker 27/27 รายการ, API Tests 69/69 และ Frontend Tests 3/3",
+  "liveUrl": "https://engse203-student-labs-685432100285.onrender.com"
+}
