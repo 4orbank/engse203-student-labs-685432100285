@@ -33,7 +33,7 @@ for (const week of labs) {
   if (hasPublish) {
     await fs.cp(publishRoot, target, { recursive: true });
   } else {
-    const sourceUrl = `${repoUrl}/tree/main/labs/${week}/source`;
+    const sourceUrl = metadata.originalSource || `${repoUrl}/tree/main/labs/${week}`;
     const evidenceUrl = `${repoUrl}/tree/main/labs/${week}/evidence`;
     const originalUrl = validHttpUrl(metadata.originalRepoUrl);
     const report = `<!doctype html>
@@ -48,7 +48,7 @@ for (const week of labs) {
     await fs.writeFile(path.join(target, "index.html"), report, "utf8");
   }
 
-  const sourceUrl = `${repoUrl}/tree/main/labs/${week}/source`;
+  const sourceUrl = metadata.originalSource || `${repoUrl}/tree/main/labs/${week}`;
   const prUrl = validHttpUrl(metadata.pullRequestUrl);
   const pageUrl = `${pagesBase}/labs/${week}/`;
   const sourceCount = (await meaningfulEntries(path.join(labRoot, "source"))).length;
@@ -60,7 +60,11 @@ for (const week of labs) {
     <div class="card-top"><span class="week">${escapeHtml(week)}</span><span class="status">${escapeHtml(statusLabels[metadata.status] ?? metadata.status)}</span></div>
     <h2>${escapeHtml(metadata.title)}</h2>
     <p>Test: <strong>${escapeHtml(metadata.testStatus)}</strong> • ${hasPublish ? "Web output" : "Evidence report"}</p>
-    <div class="links"><a class="primary" href="labs/${escapeHtml(week)}/">View Result</a><a href="${escapeHtml(sourceUrl)}">Source</a>${prUrl ? `<a href="${escapeHtml(prUrl)}">Pull Request</a>` : ""}</div>
+    <div class="links"><a class="primary" href="${escapeHtml(
+      ["week-11", "week-12", "week-13"].includes(week) && metadata.liveUrl
+        ? metadata.liveUrl
+        : `labs/${week}/`
+    )}"${["week-11", "week-12", "week-13"].includes(week) && metadata.liveUrl ? ' target="_blank" rel="noopener noreferrer"' : ""}>View Result</a><a href="${escapeHtml(sourceUrl)}">Source</a>${prUrl ? `<a href="${escapeHtml(prUrl)}">Pull Request</a>` : ""}</div>
     <small>Version: ${escapeHtml(metadata.submissionTag || "not submitted")}</small>
   </article>`);
 }

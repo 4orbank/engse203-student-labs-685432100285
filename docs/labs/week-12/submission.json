@@ -10,8 +10,9 @@
   "testStatus": "pass",
   "notes": "Test Case, Unit Testing, Integration Testing & Debugging ผ่าน Week 12 Checker ครบ 22/22 รายการ, API Tests 45/45 และ Frontend Tests 2/2",
   "liveUrl": "https://campus-service-week12-engse203-student.onrender.com",
+  "originalSource": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-12",
   "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-12/",
-  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-12/source",
+  "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-12",
   "hasPublish": false,
   "sourceEntries": 17
 }

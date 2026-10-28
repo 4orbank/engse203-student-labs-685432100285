@@ -1,14 +1,14 @@
-
 {
   "week": "week-11",
   "title": "Full-Stack Integration",
   "status": "submitted",
   "sourceOrigin": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-11/labs/week-11/source",
-  "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/lab/week-11/labs/week-11",
+  "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs",
   "originalCommit": "f827211",
   "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/10",
   "submissionTag": "lab-11-submission-v1",
   "testStatus": "pass",
   "notes": "Full-Stack Integration เชื่อมต่อ React Frontend กับ Node.js Express API ใช้ SQLite รองรับ API Routes, Error Handling และ Production Build แก้ไข Node.js version และ API Base URL เพื่อรองรับการ Deploy บน Render",
-  "liveUrl": "https://bytepark-week11-api.onrender.com"
+  "liveUrl": "https://bytepark-week11-api.onrender.com",
+  "originalSource": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-11"
 }
