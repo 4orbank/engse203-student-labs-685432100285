@@ -1,92 +1,155 @@
 import { apiFetch, ApiError } from './apiClient.js';
-
-/**
- * Week 07 — เปลี่ยนจากอ่าน localStorage เป็นเรียก API จริง
- *
- * ⚠ กฎสำคัญ: signature ของทุกฟังก์ชันต้องเหมือนเดิมทุกตัว
- *   → DashboardPage, RequestDetailPage, NewRequestPage จะได้ไม่ต้องแก้เลย
- *   นี่คือประโยชน์ของ Service Layer ที่สร้างไว้ตั้งแต่ Week 05
- */
+import {
+  readStoredRequests,
+  writeStoredRequests,
+  clearStoredRequests,
+} from './requestStorage.js';
 
 export { ApiError };
 
-/**
- * TODO W07-F3 (CP11) · GET /api/requests
- * - คง scenario 'error' และ 'empty' ไว้เหมือนเดิม (ใช้ทดสอบสถานะหน้าจอ)
- * - ถ้ามี options.status ให้ต่อ query string ?status=...
- *   ใช้ encodeURIComponent() ป้องกันอักขระพิเศษ
- */
-export async function getRequests(options = {}) {
-  if (options.scenario === 'error') {
-    throw new ApiError('ทดสอบข้อผิดพลาด', 500);
-  }
+const isGitHubPages = window.location.hostname.endsWith('github.io');
+const BASE_URL = import.meta.env?.BASE_URL ?? './';
 
-  if (options.scenario === 'empty') {
-    return [];
+async function getSeedRequests() {
+  const url = isGitHubPages
+    ? '/engse203-student-labs-685432100285/labs/week-07/data/initialRequests.json'
+    : `${BASE_URL}data/initialRequests.json`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('ไม่สามารถโหลดข้อมูลคำร้องเริ่มต้นได้');
+  }
+  return structuredClone(await response.json());
+}
+
+async function getLocalRequests() {
+  const stored = readStoredRequests();
+  if (stored.status === 'valid') return stored.requests;
+
+  const seed = await getSeedRequests();
+  writeStoredRequests(seed);
+  return seed;
+}
+
+function makeId(requests) {
+  let id;
+  do {
+    id = `REQ-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  } while (requests.some((item) => item.id === id));
+  return id;
+}
+
+export async function getRequests(options = {}) {
+  if (options.scenario === 'error') throw new ApiError('ทดสอบข้อผิดพลาด', 500);
+  if (options.scenario === 'empty') return [];
+
+  if (isGitHubPages) {
+    const requests = await getLocalRequests();
+    return options.status
+      ? requests.filter((item) => item.status === options.status)
+      : requests;
   }
 
   const query = options.status
     ? `?status=${encodeURIComponent(options.status)}`
     : '';
-
   return apiFetch(`/api/requests${query}`);
 }
 
-/**
- * TODO W07-F4 (CP11) · GET /api/requests/:id
- * ⚠ ถ้า API ตอบ 404 ให้คืน null ไม่ใช่โยน error
- *   เพราะ "ไม่พบคำร้อง" ไม่ใช่ความผิดพลาดของระบบ — หน้าจอจัดการเองได้
- *   คำใบ้: จับด้วย try/catch แล้วเช็ค error.status === 404
- */
 export async function getRequestById(requestId) {
+  if (isGitHubPages) {
+    const requests = await getLocalRequests();
+    return requests.find((item) => item.id === requestId) ?? null;
+  }
+
   try {
     return await apiFetch(`/api/requests/${encodeURIComponent(requestId)}`);
   } catch (error) {
-    if (error.status === 404) {
-      return null;
-    }
-
+    if (error.status === 404) return null;
     throw error;
   }
 }
 
-/**
- * TODO W07-F5 (CP11) · POST /api/requests
- * - ไม่ต้อง validate ฝั่งนี้แล้ว เพราะ API ตรวจให้ และคืน 400 พร้อมข้อความ
- * - ส่ง body ด้วย JSON.stringify(requestInput)
- */
-export async function addRequest(requestInput) {
-  return apiFetch('/api/requests', {
-    method: 'POST',
-    body: JSON.stringify(requestInput),
-  });
+export async function addRequest(input) {
+  if (!isGitHubPages) {
+    return apiFetch('/api/requests', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  const requests = await getLocalRequests();
+  const requesterName = input?.requesterName?.trim();
+  const requestType = input?.requestType?.trim();
+  const location = input?.location?.trim();
+  const details = input?.details?.trim();
+  const priority = input?.priority;
+
+  if (
+    !requesterName || requesterName.length < 2 ||
+    !requestType || !location ||
+    !details || details.length < 10 ||
+    !['normal', 'urgent'].includes(priority)
+  ) {
+    throw new Error('ข้อมูลคำร้องไม่ครบหรือไม่ถูกต้อง');
+  }
+
+  const created = {
+    id: makeId(requests),
+    requesterName,
+    requestType,
+    location,
+    details,
+    priority,
+    status: 'pending',
+  };
+
+  writeStoredRequests([...requests, created]);
+  return structuredClone(created);
 }
 
-/**
- * TODO W07-F6 (🏠 CP13) · PUT /api/requests/:id เปลี่ยนสถานะ
- * body: { status }
- */
 export async function updateRequestStatus(requestId, status) {
-  return apiFetch(`/api/requests/${encodeURIComponent(requestId)}`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
-  });
+  if (!isGitHubPages) {
+    return apiFetch(`/api/requests/${encodeURIComponent(requestId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  if (!['pending', 'in-progress', 'completed'].includes(status)) {
+    throw new Error('สถานะคำร้องไม่ถูกต้อง');
+  }
+
+  const requests = await getLocalRequests();
+  const index = requests.findIndex((item) => item.id === requestId);
+  if (index < 0) throw new ApiError('ไม่พบคำร้องที่ต้องการแก้ไข', 404);
+
+  const updated = requests.map((item) =>
+    item.id === requestId ? { ...item, status } : item
+  );
+  writeStoredRequests(updated);
+  return structuredClone(updated[index]);
 }
 
-/**
- * TODO W07-F7 (CP11) · DELETE /api/requests/:id
- * - ลบเสร็จแล้วคืน "รายการล่าสุดจากเซิร์ฟเวอร์" (เรียก getRequests() ต่อ)
- *   เพื่อให้หน้าจอตรงกับข้อมูลจริงเสมอ ไม่ใช่เดาเอาเองว่าเหลืออะไร
- */
 export async function deleteRequest(requestId) {
-  await apiFetch(`/api/requests/${encodeURIComponent(requestId)}`, {
-    method: 'DELETE',
-  });
+  if (!isGitHubPages) {
+    await apiFetch(`/api/requests/${encodeURIComponent(requestId)}`, {
+      method: 'DELETE',
+    });
+    return getRequests();
+  }
 
-  return getRequests();
+  const requests = await getLocalRequests();
+  const next = requests.filter((item) => item.id !== requestId);
+  writeStoredRequests(next);
+  return structuredClone(next);
 }
 
-/** Week 07 ยังไม่มี endpoint reset — โหลดรายการปัจจุบันกลับมาแทน */
 export async function resetRequests() {
-  return getRequests();
+  if (!isGitHubPages) return getRequests();
+
+  clearStoredRequests();
+  const seed = await getSeedRequests();
+  writeStoredRequests(seed);
+  return structuredClone(seed);
 }
