@@ -102,7 +102,7 @@
     "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-07/",
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-07/source",
     "hasPublish": false,
-    "sourceEntries": 6
+    "sourceEntries": 5
   },
   {
     "week": "week-08",
@@ -163,5 +163,39 @@
     "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-11/source",
     "hasPublish": false,
     "sourceEntries": 6
+  },
+  {
+    "week": "week-12",
+    "title": "Test Case, Unit Testing, Integration Testing & Debugging",
+    "status": "submitted",
+    "sourceOrigin": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-12/source",
+    "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs",
+    "originalCommit": "5d2394e",
+    "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/11",
+    "submissionTag": "lab-12-submission-v1",
+    "testStatus": "pass",
+    "notes": "Test Case, Unit Testing, Integration Testing & Debugging ผ่าน Week 12 Checker ครบ 22/22 รายการ, API Tests 45/45 และ Frontend Tests 2/2",
+    "liveUrl": "https://campus-service-week12-engse203-student.onrender.com",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-12/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-12/source",
+    "hasPublish": false,
+    "sourceEntries": 17
+  },
+  {
+    "week": "week-13",
+    "title": "Authentication, Authorization & Security",
+    "status": "submitted",
+    "sourceOrigin": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-13/source",
+    "originalRepoUrl": "https://github.com/4orbank/engse203-student-labs-685432100285",
+    "originalCommit": "f2b7e94",
+    "pullRequestUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/pull/12",
+    "submissionTag": "lab-13-submission-v1",
+    "testStatus": "pass",
+    "notes": "Week 13 Security: Request Validation, Password Hashing, JWT Authentication, Role-Based Authorization, Error Handling และ Security Testing ผ่าน Checker 27/27 รายการ, API Tests 69/69 และ Frontend Tests 3/3",
+    "liveUrl": "https://engse203-student-labs-685432100285.onrender.com",
+    "pageUrl": "https://4orbank.github.io/engse203-student-labs-685432100285/labs/week-13/",
+    "sourceUrl": "https://github.com/4orbank/engse203-student-labs-685432100285/tree/main/labs/week-13/source",
+    "hasPublish": false,
+    "sourceEntries": 18
   }
 ]
